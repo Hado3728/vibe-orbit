@@ -1,13 +1,18 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-export async function proxy(request: NextRequest) {
+// 1. MUST be named 'middleware' for Next.js to recognize it
+export async function middleware(request: NextRequest) {
     let response = NextResponse.next()
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-    if (!supabaseUrl || !supabaseKey) return response
+    // 2. SAFETY CHECK: If keys aren't loaded yet, don't crash the server!
+    if (!supabaseUrl || !supabaseKey) {
+        console.error("BUILD ERROR: Supabase environment variables are missing in Middleware!")
+        return response
+    }
 
     const supabase = createServerClient(
         supabaseUrl,
@@ -15,7 +20,7 @@ export async function proxy(request: NextRequest) {
         {
             cookies: {
                 getAll: () => request.cookies.getAll(),
-                setAll: (cookiesToSet: { name: string; value: string; options: CookieOptions }[]) => {
+                setAll: (cookiesToSet) => {
                     cookiesToSet.forEach(({ name, value }) =>
                         request.cookies.set(name, value)
                     )
@@ -28,13 +33,14 @@ export async function proxy(request: NextRequest) {
         }
     )
 
+    // This is the line that was likely crashing (void 0 is not a function)
+    // because 'supabase.auth' doesn't exist if the client fails to init.
     const {
         data: { user },
     } = await supabase.auth.getUser()
 
     const path = request.nextUrl.pathname
 
-    // Define routes that anyone can access without logging in
     const isPublicRoute =
         path === '/' ||
         path === '/login' ||
@@ -45,25 +51,21 @@ export async function proxy(request: NextRequest) {
         path === '/favicon.ico'
 
     if (!user) {
-        // Not logged in + trying to access private route = kick to login
         if (!isPublicRoute) {
             const url = request.nextUrl.clone()
             url.pathname = '/login'
             return NextResponse.redirect(url)
         }
     } else {
-        // Logged in user logic
         const onboarded = user.user_metadata?.onboarded === true
 
         if (!onboarded) {
-            // Not onboarded + trying to access dashboard = kick to onboarding
             if (path !== '/onboarding' && !isPublicRoute) {
                 const url = request.nextUrl.clone()
                 url.pathname = '/onboarding'
                 return NextResponse.redirect(url)
             }
         } else {
-            // Fully onboarded + trying to access login/onboarding = kick to dashboard
             if (path === '/login' || path === '/verify' || path === '/onboarding') {
                 const url = request.nextUrl.clone()
                 url.pathname = '/dashboard'
