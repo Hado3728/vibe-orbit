@@ -21,10 +21,16 @@ interface ChatPageProps {
     params: Promise<{ connectionId: string }>
 }
 
+// This tells Vercel: "Don't try to build this page at 2 AM on your server; wait until a user actually visits the site."
+export const dynamic = 'force-dynamic';
+
 export default function ChatPage({ params }: ChatPageProps) {
     const { connectionId } = use(params)
     const router = useRouter()
     const supabase = createClient()
+
+    // Guard against server-side rendering of browser-only code
+    if (typeof window === 'undefined') return null;
 
     // State
     const [messages, setMessages] = useState<Message[]>([])

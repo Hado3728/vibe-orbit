@@ -21,10 +21,16 @@ interface Conversation {
     lastMessage?: string // Future enhancement
 }
 
+// This tells Vercel: "Don't try to build this page at 2 AM on your server; wait until a user actually visits the site."
+export const dynamic = 'force-dynamic';
+
 export default function ChatInboxPage() {
     const [conversations, setConversations] = useState<Conversation[]>([])
     const [loading, setLoading] = useState(true)
     const supabase = createClient()
+
+    // Guard against server-side rendering of browser-only code
+    if (typeof window === 'undefined') return null;
 
     useEffect(() => {
         const fetchConversations = async () => {
