@@ -1,5 +1,7 @@
 'use client'
 
+export const dynamic = 'force-dynamic';
+
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent } from '@/components/ui/Card'
@@ -20,9 +22,6 @@ interface Conversation {
     otherUser: UserProfile
     lastMessage?: string // Future enhancement
 }
-
-// This tells Vercel: "Don't try to build this page at 2 AM on your server; wait until a user actually visits the site."
-export const dynamic = 'force-dynamic';
 
 export default function ChatInboxPage() {
     const [conversations, setConversations] = useState<Conversation[]>([])

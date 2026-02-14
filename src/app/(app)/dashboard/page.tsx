@@ -1,5 +1,7 @@
 'use client'
 
+export const dynamic = 'force-dynamic';
+
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
@@ -16,8 +18,6 @@ interface UserProfile {
     interests: string[]
     quiz_answers: number[]
 }
-
-export const dynamic = 'force-dynamic';
 
 export default function DashboardPage() {
     const [users, setUsers] = useState<(UserProfile & { matchScore: number, sharedInterest?: string })[]>([])
@@ -172,9 +172,7 @@ export default function DashboardPage() {
                     </div>
                 </header>
 
-                import {LoadingVibe} from '@/components/ui/LoadingVibe'
 
-                // ... (inside component)
                 {/* Content */}
                 {loading ? (
                     <LoadingVibe />

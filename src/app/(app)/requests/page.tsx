@@ -1,5 +1,7 @@
 'use client'
 
+export const dynamic = 'force-dynamic';
+
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/Card'
@@ -20,8 +22,6 @@ interface RequestWithSender {
     sender: UserProfile
     timestamp: string
 }
-
-export const dynamic = 'force-dynamic';
 
 export default function RequestsPage() {
     const [requests, setRequests] = useState<RequestWithSender[]>([])
