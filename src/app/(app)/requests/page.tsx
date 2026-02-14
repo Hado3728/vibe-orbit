@@ -21,6 +21,8 @@ interface RequestWithSender {
     timestamp: string
 }
 
+export const dynamic = 'force-dynamic';
+
 export default function RequestsPage() {
     const [requests, setRequests] = useState<RequestWithSender[]>([])
     const [loading, setLoading] = useState(true)

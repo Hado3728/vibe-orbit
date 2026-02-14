@@ -17,6 +17,8 @@ interface UserProfile {
     quiz_answers: number[]
 }
 
+export const dynamic = 'force-dynamic';
+
 export default function DashboardPage() {
     const [users, setUsers] = useState<(UserProfile & { matchScore: number, sharedInterest?: string })[]>([])
     const [loading, setLoading] = useState(true)
