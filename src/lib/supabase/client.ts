@@ -6,7 +6,7 @@ export function createClient() {
 
   if (!url || !key) {
     // This will show up in your Vercel logs and browser console
-    console.error("CRITICAL: Supabase keys missing at runtime!");
+    throw new Error("CRITICAL: Supabase keys missing at runtime!");
   }
 
   return createBrowserClient(
