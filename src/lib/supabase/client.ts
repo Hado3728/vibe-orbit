@@ -1,14 +1,14 @@
 import { createBrowserClient } from '@supabase/ssr'
 
-export function createClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+// We assign these to constants OUTSIDE the function 
+// This forces Next.js to "bake" the values into the JS file during build
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-  if (!url || !key) {
-    console.error("Supabase keys are missing! Check Vercel Dashboard.")
-    // Returning a dummy object prevents the '(void 0) is not a function' crash
-    return { auth: { onAuthStateChange: () => { } } } as any
+export function createClient() {
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error("Missing Supabase Environment Variables")
   }
 
-  return createBrowserClient(url, key)
+  return createBrowserClient(supabaseUrl, supabaseKey)
 }
