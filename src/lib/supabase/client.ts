@@ -5,12 +5,11 @@ export function createClient() {
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   if (!url || !key) {
-    // This will show up in your Vercel logs and browser console
-    throw new Error("CRITICAL: Supabase keys missing at runtime!");
+    // This allows the page to load without crashing immediately
+    // so you can see the diagnostic logs
+    console.error("Environment variables are MISSING at runtime");
+    return null as any;
   }
 
-  return createBrowserClient(
-    url!, // Use '!' to catch the error if it's still missing
-    key!
-  )
+  return createBrowserClient(url, key)
 }

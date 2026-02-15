@@ -90,11 +90,11 @@ export default function DashboardPage() {
 
                 // 4. Process & Sort
                 if (otherUsers) {
-                    const processedUsers = otherUsers.map(u => ({
+                    const processedUsers = otherUsers.map((u: UserProfile) => ({
                         ...u,
                         matchScore: calculateMatch(myProfile.quiz_answers, u.quiz_answers),
                         sharedInterest: getInsight(myProfile.interests, u.interests)
-                    })).sort((a, b) => b.matchScore - a.matchScore)
+                    })).sort((a: any, b: any) => b.matchScore - a.matchScore)
 
                     setUsers(processedUsers)
                 }
@@ -106,7 +106,7 @@ export default function DashboardPage() {
                     .eq('from_user', user.id)
 
                 if (existingRequests) {
-                    setSentRequests(existingRequests.map(r => r.to_user))
+                    setSentRequests(existingRequests.map((r: { to_user: string }) => r.to_user))
                 }
 
             } catch (error) {
