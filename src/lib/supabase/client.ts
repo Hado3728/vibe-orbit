@@ -5,10 +5,9 @@ export function createClient() {
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   if (!url || !key) {
-    // This allows the page to load without crashing immediately
-    // so you can see the diagnostic logs
-    console.error("Environment variables are MISSING at runtime");
-    return null as any;
+    console.error("Supabase keys are missing! Check Vercel Dashboard.")
+    // Returning a dummy object prevents the '(void 0) is not a function' crash
+    return { auth: { onAuthStateChange: () => { } } } as any
   }
 
   return createBrowserClient(url, key)
