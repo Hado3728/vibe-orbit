@@ -37,7 +37,7 @@ export default function LoginPage() {
         await supabase.auth.signInWithOAuth({
             provider: "google",
             options: {
-                redirectTo: `${window.location.origin}/verify`,
+                redirectTo: `${window.location.origin}/api/auth/callback`,
             },
         });
     };
