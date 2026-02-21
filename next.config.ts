@@ -1,14 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Disable strict linting/type checks just to get the build through
+  // NEXT_PUBLIC_ vars are automatically available to the client — no env block needed.
+  // Adding one here can cause Vercel to write undefined over the real values at build time.
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: true },
-
-  // Explicitly mapping ensures these are available to the client
-  env: {
-    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
-    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-  },
 };
 
 export default nextConfig;
