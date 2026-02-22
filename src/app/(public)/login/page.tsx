@@ -54,11 +54,11 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-white to-purple-100 p-4">
-            <Card className="w-full max-w-md bg-white/40 backdrop-blur-xl border-white/50 shadow-2xl rounded-3xl overflow-hidden">
+        <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(79,70,229,0.15),rgba(255,255,255,0))] p-4">
+            <Card className="w-full max-w-md bg-slate-900/60 backdrop-blur-xl border-slate-800 shadow-2xl shadow-indigo-500/10 rounded-3xl overflow-hidden">
                 <CardHeader className="text-center pt-10 pb-4">
-                    <CardTitle className="text-3xl font-extrabold text-gray-800 tracking-tight">Orbit</CardTitle>
-                    <p className="text-sm text-gray-600 mt-2 font-medium">No creeps. No judging. Just vibes.</p>
+                    <CardTitle className="text-3xl font-extrabold text-white tracking-tight">Orbit</CardTitle>
+                    <p className="text-sm text-slate-400 mt-2 font-medium">No creeps. No judging. Just vibes.</p>
                 </CardHeader>
                 <CardContent className="px-8 pb-10">
                     <form onSubmit={handleLogin} className="space-y-4">
@@ -69,12 +69,12 @@ export default function LoginPage() {
                                 value={email}
                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
                                 required
-                                className="w-full bg-white/60 border-gray-200 text-gray-800 rounded-xl h-12 px-4 focus:ring-2 focus:ring-purple-400 focus:border-transparent transition-all"
+                                className="w-full bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500 rounded-xl h-12 px-4 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
                             />
                         </div>
                         <Button
                             type="submit"
-                            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl h-12 font-semibold shadow-md transition-all active:scale-[0.98]"
+                            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl h-12 font-semibold shadow-lg shadow-indigo-600/20 transition-all active:scale-[0.98]"
                             disabled={loading}
                         >
                             {loading ? "Sending..." : "Send Magic Link"}
@@ -84,16 +84,16 @@ export default function LoginPage() {
                     <div className="mt-8 flex flex-col gap-4">
                         <div className="relative">
                             <div className="absolute inset-0 flex items-center">
-                                <span className="w-full border-t border-gray-300" />
+                                <span className="w-full border-t border-slate-800" />
                             </div>
                             <div className="relative flex justify-center text-xs uppercase">
-                                <span className="bg-transparent px-2 text-gray-500 font-semibold tracking-wider">Or continue with</span>
+                                <span className="bg-[#111423] px-2 text-slate-500 font-semibold tracking-wider">Or continue with</span>
                             </div>
                         </div>
                         <Button
                             type="button"
                             onClick={handleGoogleLogin}
-                            className="w-full bg-white text-gray-800 hover:bg-gray-50 border border-gray-200 shadow-sm rounded-xl h-12 font-semibold transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                            className="w-full bg-slate-800 text-white hover:bg-slate-700 border border-slate-700 shadow-sm rounded-xl h-12 font-semibold transition-all active:scale-[0.98] flex items-center justify-center gap-2"
                         >
                             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -103,7 +103,7 @@ export default function LoginPage() {
                             </svg>
                             Google
                         </Button>
-                        {message && <p className="text-center text-sm font-medium text-indigo-600 mt-2 bg-indigo-50 p-2 rounded-lg">{message}</p>}
+                        {message && <p className="text-center text-sm font-medium text-indigo-300 mt-2 bg-indigo-950/50 border border-indigo-900/50 p-2 rounded-lg">{message}</p>}
                     </div>
                 </CardContent>
             </Card>
