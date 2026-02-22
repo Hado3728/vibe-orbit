@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import { createBrowserClient } from "@supabase/ssr";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -25,13 +25,14 @@ export default function LoginPage() {
     };
 
     const handleGoogleLogin = async () => {
-        // Must use a PKCE-configured client — the singleton does not set flowType,
-        // which causes Supabase to fall back to the implicit flow and return
-        // #access_token instead of ?code= in the redirect URL.
-        const supabase = createSupabaseClient(
+        // createBrowserClient from @supabase/ssr stores the PKCE code_verifier
+        // in a cookie (not localStorage), so the server-side callback route can
+        // read it and successfully call exchangeCodeForSession(code).
+        // Using @supabase/supabase-js directly caused bad_oauth_state errors
+        // because the server cannot access localStorage.
+        const supabase = createBrowserClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-            { auth: { flowType: "pkce" } }
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
         );
         await supabase.auth.signInWithOAuth({
             provider: "google",
