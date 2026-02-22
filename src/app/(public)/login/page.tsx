@@ -2,10 +2,29 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { createBrowserClient } from "@supabase/ssr";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+
+// Cookie-based storage adapter for the PKCE code_verifier.
+// @supabase/supabase-js defaults to localStorage, which the server cannot read.
+// This adapter writes to document.cookie instead, which Next.js cookies() CAN read.
+// We avoid createBrowserClient from @supabase/ssr because Next.js 16 + Turbopack
+// misresolves its conditional package exports and silently breaks the button.
+const cookieStorage = {
+    getItem(key: string): string | null {
+        if (typeof document === "undefined") return null;
+        const match = document.cookie.split("; ").find((row) => row.startsWith(`${key}=`));
+        return match ? decodeURIComponent(match.split("=")[1]) : null;
+    },
+    setItem(key: string, value: string): void {
+        document.cookie = `${key}=${encodeURIComponent(value)}; path=/; max-age=3600; SameSite=Lax; Secure`;
+    },
+    removeItem(key: string): void {
+        document.cookie = `${key}=; path=/; max-age=0`;
+    },
+};
 
 export default function LoginPage() {
     const [email, setEmail] = useState("");
@@ -25,14 +44,15 @@ export default function LoginPage() {
     };
 
     const handleGoogleLogin = async () => {
-        // createBrowserClient from @supabase/ssr stores the PKCE code_verifier
-        // in a cookie (not localStorage), so the server-side callback route can
-        // read it and successfully call exchangeCodeForSession(code).
-        // Using @supabase/supabase-js directly caused bad_oauth_state errors
-        // because the server cannot access localStorage.
-        const supabase = createBrowserClient(
+        const supabase = createSupabaseClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            {
+                auth: {
+                    flowType: "pkce",
+                    storage: cookieStorage,
+                },
+            }
         );
         await supabase.auth.signInWithOAuth({
             provider: "google",
