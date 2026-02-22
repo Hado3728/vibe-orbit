@@ -100,7 +100,7 @@ export default function LandingPage() {
     const rafRef = useRef<number>(0);
     const scrollVelRef = useRef(0);
     const lastScrollRef = useRef(0);
-    const mouseRef = useRef({ x: -9999, y: -9999 });
+
     const isDarkRef = useRef(true);
 
     const [isDark, setIsDark] = useState(true);
@@ -131,8 +131,7 @@ export default function LandingPage() {
         };
         window.addEventListener("scroll", onScroll, { passive: true });
 
-        const onMouse = (e: MouseEvent) => { mouseRef.current = { x: e.clientX, y: e.clientY }; };
-        window.addEventListener("mousemove", onMouse);
+
 
         const draw = () => {
             const { width: W, height: H } = canvas;
@@ -140,8 +139,6 @@ export default function LandingPage() {
             const vel = scrollVelRef.current;
             const warp = Math.min(Math.abs(vel) * 1.2, 50);
             scrollVelRef.current *= 0.82;
-            const mx = mouseRef.current.x, my = mouseRef.current.y;
-            const CURSOR_R = 130;
             const dark = isDarkRef.current;
 
             const dotRgb = dark ? "210,200,255" : "60,60,200";
@@ -152,13 +149,8 @@ export default function LandingPage() {
                 star.currentY -= moveY;
                 if (star.currentY < -20) { star.currentY = H + 10; star.currentX = Math.random() * W; star.x = star.currentX; }
 
-                const dx = star.currentX - mx, dy = star.currentY - my;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                let glow = 0;
-                if (dist < CURSOR_R && dist > 0) { glow = 1 - dist / CURSOR_R; star.currentX += (dx / dist) * glow * 2; star.currentY += (dy / dist) * glow * 2; }
-
-                const opacity = Math.min(1, star.baseOpacity + glow * 0.7);
-                const radius = star.size + glow * 2;
+                const opacity = star.baseOpacity;
+                const radius = star.size;
 
                 if (warp > 4) {
                     const trailLen = warp * star.z * 5;
@@ -170,15 +162,8 @@ export default function LandingPage() {
                 }
 
                 ctx.beginPath();
-                if (glow > 0.08) {
-                    const grd = ctx.createRadialGradient(star.currentX, star.currentY, 0, star.currentX, star.currentY, radius * 4);
-                    grd.addColorStop(0, `rgba(${dark ? "200,180,255" : "79,70,229"},${opacity})`);
-                    grd.addColorStop(0.4, `rgba(99,102,241,${opacity * 0.5})`);
-                    grd.addColorStop(1, `rgba(99,102,241,0)`);
-                    ctx.fillStyle = grd; ctx.arc(star.currentX, star.currentY, radius * 4, 0, Math.PI * 2);
-                } else {
-                    ctx.fillStyle = `rgba(${dotRgb},${opacity})`; ctx.arc(star.currentX, star.currentY, radius, 0, Math.PI * 2);
-                }
+                ctx.fillStyle = `rgba(${dotRgb},${opacity})`;
+                ctx.arc(star.currentX, star.currentY, radius, 0, Math.PI * 2);
                 ctx.fill();
             }
             rafRef.current = requestAnimationFrame(draw);
@@ -189,7 +174,6 @@ export default function LandingPage() {
             cancelAnimationFrame(rafRef.current);
             window.removeEventListener("resize", resize);
             window.removeEventListener("scroll", onScroll);
-            window.removeEventListener("mousemove", onMouse);
         };
     }, []);
 
@@ -259,7 +243,10 @@ export default function LandingPage() {
                         Now live — find your signal
                     </div>
                     <h1 className="text-5xl sm:text-7xl lg:text-8xl font-black tracking-tighter leading-[0.95] mb-6 max-w-5xl">
-                        <span className={`block bg-clip-text text-transparent bg-gradient-to-r ${isDark ? "from-white via-slate-200 to-indigo-200" : "from-slate-900 via-slate-700 to-indigo-700"}`} style={{ filter: `drop-shadow(0 0 40px rgba(99,102,241,${isDark ? "0.35" : "0.2"}))` }}>
+                        <span
+                            className="block bg-clip-text text-transparent bg-gradient-to-r from-pink-500 via-purple-500 to-blue-600"
+                            style={{ filter: `drop-shadow(0 0 30px rgba(236,72,153,${isDark ? "0.7" : "0.4"})) drop-shadow(0 0 60px rgba(139,92,246,${isDark ? "0.5" : "0.3"})) drop-shadow(0 0 100px rgba(99,102,241,${isDark ? "0.3" : "0.15"}))` }}
+                        >
                             Sync Your Vibe.
                         </span>
                         <span className="block mt-2 bg-gradient-to-r from-indigo-400 via-violet-400 to-fuchsia-400 bg-clip-text text-transparent" style={{ filter: `drop-shadow(0 0 60px rgba(139,92,246,${isDark ? "0.5" : "0.35"}))` }}>
