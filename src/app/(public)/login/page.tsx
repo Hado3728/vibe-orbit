@@ -1,25 +1,39 @@
 "use client";
 
 import { useState } from "react";
-// Bypass the local wrapper and import directly from the source package
 import { createBrowserClient } from "@supabase/ssr";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export default function LoginPage() {
     const [email, setEmail] = useState("");
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState("");
 
-    // useState lazy initializer guarantees client is created once and never
-    // on re-renders (e.g. when user types in the email field)
-    const [supabase] = useState(() =>
-        createBrowserClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-        )
-    );
+    // Guard: if env vars are missing, show a clear error instead of crashing
+    if (!SUPABASE_URL || !SUPABASE_KEY) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-red-50 p-4">
+                <div className="bg-white border border-red-200 rounded-2xl p-8 max-w-md text-center shadow-lg">
+                    <h1 className="text-xl font-bold text-red-700 mb-2">⚠️ Config Error</h1>
+                    <p className="text-gray-600 text-sm">
+                        <code className="bg-red-50 px-1 rounded">NEXT_PUBLIC_SUPABASE_URL</code> and{" "}
+                        <code className="bg-red-50 px-1 rounded">NEXT_PUBLIC_SUPABASE_ANON_KEY</code>{" "}
+                        are not set in this environment.
+                    </p>
+                    <p className="text-gray-500 text-xs mt-3">
+                        Add them in your Railway / Vercel dashboard under Environment Variables, then redeploy.
+                    </p>
+                </div>
+            </div>
+        );
+    }
+
+    const supabase = createBrowserClient(SUPABASE_URL, SUPABASE_KEY);
 
     const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
