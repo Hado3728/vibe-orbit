@@ -1,26 +1,20 @@
-// We use a dynamic import singleton to avoid Next.js 16 Turbopack
-// misresolving @supabase/supabase-js to its Node.js export path during the
-// production build step. Static imports let the bundler evaluate and
-// potentially tree-shake or remap the package; dynamic imports are deferred
-// to runtime, guaranteeing the browser always gets the browser bundle.
+// Browser-side Supabase client — synchronous singleton.
+// Uses @supabase/supabase-js directly (not @supabase/ssr) to avoid
+// Next.js 16 Turbopack misresolving the conditional package exports.
+//
+// server.ts handles the server-side client (async, uses cookies()).
 
-let clientPromise: ReturnType<typeof createSupabaseClient> | null = null
+import { createClient as _createSupabaseClient } from '@supabase/supabase-js'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
-async function createSupabaseClient() {
-  const { createClient } = await import('@supabase/supabase-js')
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
-}
+let _client: SupabaseClient | null = null
 
-/**
- * Returns the singleton Supabase browser client.
- * Safe to call in event handlers and useEffect — never during SSR.
- */
-export function createClient() {
-  if (!clientPromise) {
-    clientPromise = createSupabaseClient()
+export function createClient(): SupabaseClient {
+  if (!_client) {
+    _client = _createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
   }
-  return clientPromise
+  return _client
 }
