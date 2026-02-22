@@ -50,7 +50,8 @@ export default function LoginPage() {
         await supabase.auth.signInWithOAuth({
             provider: "google",
             options: {
-                redirectTo: `${window.location.origin}/api/auth/callback`,
+                // Hardcoded exact production URL — no variables, no guessing.
+                redirectTo: "https://vibe-orbit-production.up.railway.app/api/auth/callback",
             },
         });
     };
