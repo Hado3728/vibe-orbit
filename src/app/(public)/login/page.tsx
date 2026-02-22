@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from "@/lib/supabase/client";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -14,26 +14,26 @@ export default function LoginPage() {
     const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setLoading(true);
-        const supabase = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-        );
+        const supabase = createClient();
         const { error } = await supabase.auth.signInWithOtp({
             email,
-            options: { emailRedirectTo: `${window.location.origin}/api/auth/callback` },
+            options: { emailRedirectTo: "https://vibe-orbit-production.up.railway.app/auth/callback" },
         });
         setMessage(error ? error.message : "Magic link sent! Check your email.");
         setLoading(false);
     };
 
     const handleGoogleLogin = async () => {
-        const supabase = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-        );
+        const supabase = createClient();
         await supabase.auth.signInWithOAuth({
             provider: "google",
-            options: { redirectTo: "https://vibe-orbit-production.up.railway.app/api/auth/callback" },
+            options: {
+                redirectTo: "https://vibe-orbit-production.up.railway.app/auth/callback",
+                queryParams: {
+                    access_type: "offline",
+                    prompt: "consent",
+                },
+            },
         });
     };
 
