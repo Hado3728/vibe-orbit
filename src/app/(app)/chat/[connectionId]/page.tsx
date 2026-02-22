@@ -26,7 +26,6 @@ interface ChatPageProps {
 export default function ChatPage({ params }: ChatPageProps) {
     const { connectionId } = use(params)
     const router = useRouter()
-    const supabase = createClient()
 
     // Guard against server-side rendering of browser-only code
     if (typeof window === 'undefined') return null;
@@ -50,6 +49,7 @@ export default function ChatPage({ params }: ChatPageProps) {
     }, [messages])
 
     useEffect(() => {
+        const supabase = createClient()
         const setupChat = async () => {
             try {
                 // 1. Get Current User
@@ -84,7 +84,7 @@ export default function ChatPage({ params }: ChatPageProps) {
                             table: 'messages',
                             filter: `room_id=eq.${connectionId}`
                         },
-                        (payload) => {
+                        (payload: { new: Message }) => {
                             setMessages((prev) => [...prev, payload.new as Message])
                         }
                     )
@@ -102,7 +102,7 @@ export default function ChatPage({ params }: ChatPageProps) {
         }
 
         setupChat()
-    }, [supabase, connectionId, router])
+    }, [connectionId, router])
 
     const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault()
