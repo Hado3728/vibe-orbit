@@ -5,9 +5,10 @@ import { User } from '@supabase/supabase-js'
 export function useUser() {
     const [user, setUser] = useState<User | null>(null)
     const [loading, setLoading] = useState(true)
-    const supabase = createClient()
 
     useEffect(() => {
+        const supabase = createClient()
+
         // Get initial session
         supabase.auth.getUser().then(({ data: { user } }: { data: { user: User | null } }) => {
             setUser(user)
@@ -15,7 +16,7 @@ export function useUser() {
         })
 
         // Listen for changes
-        // @ts-ignore - Triggered by subscription type mismatch in older supabase-js versions
+        // @ts-ignore
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: string, session: any) => {
             setUser(session?.user ?? null)
             setLoading(false)
