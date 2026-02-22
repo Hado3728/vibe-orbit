@@ -1,28 +1,46 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { NextResponse } from 'next/server';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 
-const PRODUCTION_URL = 'https://vibe-orbit-production.up.railway.app'
+// THIS IS CRITICAL: Stops Next.js from caching the route and failing the auth
+export const dynamic = 'force-dynamic';
 
-export async function GET(request: NextRequest) {
-    const { searchParams } = new URL(request.url)
-    const code = searchParams.get('code')
+export async function GET(request: Request) {
+    const { searchParams } = new URL(request.url);
+    const code = searchParams.get('code');
 
-    if (!code) {
-        return NextResponse.redirect(`${PRODUCTION_URL}/login?error=auth_failed`)
-    }
+    if (code) {
+        const cookieStore = await cookies();
 
-    try {
-        const supabase = await createClient()
-        const { error } = await supabase.auth.exchangeCodeForSession(code)
+        const supabase = createServerClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            {
+                cookies: {
+                    get(name: string) {
+                        return cookieStore.get(name)?.value;
+                    },
+                    set(name: string, value: string, options: CookieOptions) {
+                        cookieStore.set({ name, value, ...options });
+                    },
+                    remove(name: string, options: CookieOptions) {
+                        cookieStore.set({ name, value: '', ...options });
+                    },
+                },
+            }
+        );
 
-        if (error) {
-            console.error('[auth/callback] exchangeCodeForSession error:', error.message)
-            return NextResponse.redirect(`${PRODUCTION_URL}/login?error=auth_failed`)
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+
+        if (!error) {
+            // Success! Hardcoded redirect to bypass the Railway proxy confusion
+            return NextResponse.redirect('https://vibe-orbit-production.up.railway.app/dashboard');
+        } else {
+            // If it fails, log the EXACT reason to your Railway dashboard
+            console.error('SUPABASE OAUTH ERROR:', error.message);
         }
-
-        return NextResponse.redirect(`${PRODUCTION_URL}/dashboard`)
-    } catch (err) {
-        console.error('[auth/callback] Unexpected error:', err)
-        return NextResponse.redirect(`${PRODUCTION_URL}/login?error=auth_failed`)
     }
+
+    // Fallback if no code is found or an error occurs
+    return NextResponse.redirect('https://vibe-orbit-production.up.railway.app/login?error=auth_failed');
 }
