@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+// Bypass the local wrapper and import directly from the source package
+import { createBrowserClient } from "@supabase/ssr";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -11,13 +12,19 @@ export default function LoginPage() {
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState("");
 
-    const supabase = createClient();
+    // useState lazy initializer guarantees client is created once and never
+    // on re-renders (e.g. when user types in the email field)
+    const [supabase] = useState(() =>
+        createBrowserClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        )
+    );
 
     const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setLoading(true);
 
-        // The REAL Supabase call
         const { error } = await supabase.auth.signInWithOtp({
             email,
             options: {
