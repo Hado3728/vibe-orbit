@@ -1,33 +1,26 @@
-import { createBrowserClient } from '@supabase/ssr'
+// We use a dynamic import singleton to avoid Next.js 16 Turbopack
+// misresolving @supabase/supabase-js to its Node.js export path during the
+// production build step. Static imports let the bundler evaluate and
+// potentially tree-shake or remap the package; dynamic imports are deferred
+// to runtime, guaranteeing the browser always gets the browser bundle.
 
-export function createClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+let clientPromise: ReturnType<typeof createSupabaseClient> | null = null
 
-  if (!url || !key) {
-    // Return a typed stub — prevents (void 0) crashes when env vars are missing.
-    // Auth calls will fail gracefully rather than crashing the whole page.
-    return {
-      auth: {
-        getUser: async () => ({ data: { user: null }, error: null }),
-        getSession: async () => ({ data: { session: null }, error: null }),
-        signInWithOtp: async () => ({ data: null, error: { message: 'Supabase not configured. Check env vars.' } }),
-        signInWithOAuth: async () => ({ data: null, error: { message: 'Supabase not configured. Check env vars.' } }),
-        onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => { } } } }),
-        signOut: async () => ({ error: null }),
-      },
-      from: () => ({
-        select: () => ({ data: null, error: { message: 'Supabase not configured.' } }),
-        insert: () => ({ data: null, error: { message: 'Supabase not configured.' } }),
-        update: () => ({ data: null, error: { message: 'Supabase not configured.' } }),
-        delete: () => ({ data: null, error: { message: 'Supabase not configured.' } }),
-        eq: function () { return this },
-        neq: function () { return this },
-        single: function () { return { data: null, error: { message: 'Supabase not configured.' } } },
-        limit: function () { return this },
-      }),
-    } as any
+async function createSupabaseClient() {
+  const { createClient } = await import('@supabase/supabase-js')
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+}
+
+/**
+ * Returns the singleton Supabase browser client.
+ * Safe to call in event handlers and useEffect — never during SSR.
+ */
+export function getClient() {
+  if (!clientPromise) {
+    clientPromise = createSupabaseClient()
   }
-
-  return createBrowserClient(url, key)
+  return clientPromise
 }
