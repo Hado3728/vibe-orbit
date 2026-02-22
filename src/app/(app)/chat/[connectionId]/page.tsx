@@ -49,8 +49,8 @@ export default function ChatPage({ params }: ChatPageProps) {
     }, [messages])
 
     useEffect(() => {
-        const supabase = createClient()
         const setupChat = async () => {
+            const supabase = await createClient()
             try {
                 // 1. Get Current User
                 const { data: { user } } = await supabase.auth.getUser()
@@ -112,7 +112,7 @@ export default function ChatPage({ params }: ChatPageProps) {
             const text = newMessage.trim()
             setNewMessage('') // Optimistic clear
 
-            const { error } = await createClient()
+            const { error } = await (await createClient())
                 .from('messages')
                 .insert({
                     room_id: connectionId,
