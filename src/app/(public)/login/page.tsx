@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -24,7 +25,14 @@ export default function LoginPage() {
     };
 
     const handleGoogleLogin = async () => {
-        const supabase = createClient();
+        // Must use a PKCE-configured client — the singleton does not set flowType,
+        // which causes Supabase to fall back to the implicit flow and return
+        // #access_token instead of ?code= in the redirect URL.
+        const supabase = createSupabaseClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            { auth: { flowType: "pkce" } }
+        );
         await supabase.auth.signInWithOAuth({
             provider: "google",
             options: {
