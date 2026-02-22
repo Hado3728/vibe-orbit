@@ -26,12 +26,12 @@ interface Conversation {
 export default function ChatInboxPage() {
     const [conversations, setConversations] = useState<Conversation[]>([])
     const [loading, setLoading] = useState(true)
-    const supabase = createClient()
 
     // Guard against server-side rendering of browser-only code
     if (typeof window === 'undefined') return null;
 
     useEffect(() => {
+        const supabase = createClient()
         const fetchConversations = async () => {
             try {
                 // 1. Get Current User
@@ -54,7 +54,7 @@ export default function ChatInboxPage() {
                 }
 
                 // 3. Identify "Other" User IDs
-                const otherUserIds = connections.map(c =>
+                const otherUserIds = connections.map((c: { id: string, from_user: string, to_user: string, status: string }) =>
                     c.from_user === user.id ? c.to_user : c.from_user
                 )
 
@@ -89,7 +89,7 @@ export default function ChatInboxPage() {
         }
 
         fetchConversations()
-    }, [supabase])
+    }, [])
 
     // Container Animation
     const container = {
