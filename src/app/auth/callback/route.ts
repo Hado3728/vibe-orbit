@@ -16,17 +16,7 @@ export async function GET(request: Request) {
             process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
             {
                 cookies: {
-                    // FOR OLDER VERSIONS (Bypassing Railway Cache)
-                    get(name: string) {
-                        return cookieStore.get(name)?.value;
-                    },
-                    set(name: string, value: string, options: any) {
-                        try { cookieStore.set({ name, value, ...options }); } catch (e) { }
-                    },
-                    remove(name: string, options: any) {
-                        try { cookieStore.set({ name, value: '', ...options }); } catch (e) { }
-                    },
-                    // FOR NEWER VERSIONS (Next.js 15)
+                    // Modern @supabase/ssr v0.5+ API (Strictly required for Next.js 15/16)
                     getAll() {
                         return cookieStore.getAll();
                     },
@@ -35,7 +25,10 @@ export async function GET(request: Request) {
                             cookiesToSet.forEach(({ name, value, options }) => {
                                 cookieStore.set(name, value, options);
                             });
-                        } catch (error) { }
+                        } catch (error) {
+                            // Expected: Next.js throws if cookies are set after the response starts
+                            // but @supabase/ssr handles this internally.
+                        }
                     },
                 },
             }
@@ -46,7 +39,7 @@ export async function GET(request: Request) {
         if (!error) {
             return NextResponse.redirect('https://vibe-orbit-production.up.railway.app/dashboard');
         } else {
-            console.error('SUPABASE OAUTH ERROR:', error.message);
+            console.error("SUPABASE OAUTH ERROR:", error.message);
         }
     }
 
