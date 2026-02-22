@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
-// Critical: Stops Next.js from caching the route
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
@@ -17,7 +16,17 @@ export async function GET(request: Request) {
             process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
             {
                 cookies: {
-                    // Required syntax for @supabase/ssr v0.5+ and Next.js 15
+                    // FOR OLDER VERSIONS (Bypassing Railway Cache)
+                    get(name: string) {
+                        return cookieStore.get(name)?.value;
+                    },
+                    set(name: string, value: string, options: any) {
+                        try { cookieStore.set({ name, value, ...options }); } catch (e) { }
+                    },
+                    remove(name: string, options: any) {
+                        try { cookieStore.set({ name, value: '', ...options }); } catch (e) { }
+                    },
+                    // FOR NEWER VERSIONS (Next.js 15)
                     getAll() {
                         return cookieStore.getAll();
                     },
@@ -26,9 +35,7 @@ export async function GET(request: Request) {
                             cookiesToSet.forEach(({ name, value, options }) => {
                                 cookieStore.set(name, value, options);
                             });
-                        } catch {
-                            // Safe to ignore in Route Handlers — Next.js handles cookie flushing
-                        }
+                        } catch (error) { }
                     },
                 },
             }
