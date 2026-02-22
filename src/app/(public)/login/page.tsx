@@ -1,21 +1,11 @@
 "use client";
 
 import { useState } from "react";
+// Using the core JS library. It is immune to the SSR tree-shaking bug.
+import { createClient } from "@supabase/supabase-js";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-
-// NO static Supabase import at the module level.
-// Turbopack cannot tree-shake or misresolve what isn't statically imported.
-// The client is created on-demand via dynamic import inside each handler.
-
-async function getSupabase() {
-    const { createClient } = await import("@supabase/supabase-js");
-    return createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
-}
 
 export default function LoginPage() {
     const [email, setEmail] = useState("");
@@ -26,39 +16,41 @@ export default function LoginPage() {
         e.preventDefault();
         setLoading(true);
 
-        try {
-            const supabase = await getSupabase();
-            const { error } = await supabase.auth.signInWithOtp({
-                email,
-                options: {
-                    emailRedirectTo: `${window.location.origin}/verify`,
-                },
-            });
+        // Initialize strictly inside the event handler.
+        // Next.js compiler cannot touch this during the build or SSR.
+        const supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        );
 
-            if (error) {
-                setMessage(error.message);
-            } else {
-                setMessage("Magic link sent! Check your email.");
-            }
-        } catch (err: any) {
-            setMessage(err.message ?? "Something went wrong.");
-        } finally {
-            setLoading(false);
+        const { error } = await supabase.auth.signInWithOtp({
+            email,
+            options: {
+                emailRedirectTo: `${window.location.origin}/verify`,
+            },
+        });
+
+        if (error) {
+            setMessage(error.message);
+        } else {
+            setMessage("Magic link sent! Check your email.");
         }
+        setLoading(false);
     };
 
     const handleGoogleLogin = async () => {
-        try {
-            const supabase = await getSupabase();
-            await supabase.auth.signInWithOAuth({
-                provider: "google",
-                options: {
-                    redirectTo: `${window.location.origin}/api/auth/callback`,
-                },
-            });
-        } catch (err: any) {
-            setMessage(err.message ?? "OAuth error.");
-        }
+        // Only create the client if they actually click Google.
+        const supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        );
+
+        await supabase.auth.signInWithOAuth({
+            provider: "google",
+            options: {
+                redirectTo: `${window.location.origin}/api/auth/callback`,
+            },
+        });
     };
 
     return (
