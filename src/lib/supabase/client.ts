@@ -18,7 +18,7 @@ async function createSupabaseClient() {
  * Returns the singleton Supabase browser client.
  * Safe to call in event handlers and useEffect — never during SSR.
  */
-export function getClient() {
+export function createClient() {
   if (!clientPromise) {
     clientPromise = createSupabaseClient()
   }
