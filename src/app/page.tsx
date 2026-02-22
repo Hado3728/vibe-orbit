@@ -1,188 +1,332 @@
-'use client'
+"use client";
 
-import { useState, useEffect, useRef } from 'react'
-import Link from 'next/link'
-import { motion, useMotionTemplate, useMotionValue, animate } from 'framer-motion'
-import { ArrowRight, Sparkles, Orbit, ShieldCheck, Zap, Lock } from 'lucide-react'
-import { Button } from '@/components/ui/Button'
-import { cn } from '@/lib/utils'
+import { useEffect, useRef } from "react";
+import Link from "next/link";
+
+interface Star {
+    x: number;
+    y: number;
+    z: number;       // depth 0=far, 1=close
+    size: number;
+    baseOpacity: number;
+    speed: number;
+    currentX: number;
+    currentY: number;
+}
+
+const STAR_COUNT = 220;
+
+function createStars(w: number, h: number): Star[] {
+    return Array.from({ length: STAR_COUNT }, () => {
+        const x = Math.random() * w;
+        const y = Math.random() * h;
+        return {
+            x, y, currentX: x, currentY: y,
+            z: Math.random(),
+            size: Math.random() * 1.8 + 0.3,
+            baseOpacity: Math.random() * 0.6 + 0.2,
+            speed: Math.random() * 0.25 + 0.05,
+        };
+    });
+}
 
 export default function LandingPage() {
-    const [mounted, setMounted] = useState(false)
-
-    // Mouse tracking for spotlight effect
-    const mouseX = useMotionValue(0)
-    const mouseY = useMotionValue(0)
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const starsRef = useRef<Star[]>([]);
+    const rafRef = useRef<number>(0);
+    const scrollVelRef = useRef(0);
+    const lastScrollRef = useRef(0);
+    const mouseRef = useRef({ x: -9999, y: -9999 });
 
     useEffect(() => {
-        setMounted(true)
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
 
-        const handleMouseMove = ({ clientX, clientY }: MouseEvent) => {
-            mouseX.set(clientX)
-            mouseY.set(clientY)
-        }
+        // ── Resize ──────────────────────────────────────────────────────────
+        const resize = () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            starsRef.current = createStars(canvas.width, canvas.height);
+        };
+        resize();
+        window.addEventListener("resize", resize);
 
-        window.addEventListener('mousemove', handleMouseMove)
-        return () => window.removeEventListener('mousemove', handleMouseMove)
-    }, [mouseX, mouseY])
+        // ── Scroll ──────────────────────────────────────────────────────────
+        const onScroll = () => {
+            const y = window.scrollY;
+            scrollVelRef.current = y - lastScrollRef.current;
+            lastScrollRef.current = y;
+        };
+        window.addEventListener("scroll", onScroll, { passive: true });
 
-    // Spotlight gradient
-    const background = useMotionTemplate`radial-gradient(600px circle at ${mouseX}px ${mouseY}px, rgba(99, 102, 241, 0.15), transparent 80%)`
+        // ── Mouse ────────────────────────────────────────────────────────────
+        const onMouse = (e: MouseEvent) => {
+            mouseRef.current = { x: e.clientX, y: e.clientY };
+        };
+        window.addEventListener("mousemove", onMouse);
 
-    if (!mounted) return null
+        // ── Draw loop ────────────────────────────────────────────────────────
+        const draw = () => {
+            const { width: W, height: H } = canvas;
+            ctx.clearRect(0, 0, W, H);
+
+            const vel = scrollVelRef.current;
+            const warp = Math.min(Math.abs(vel) * 1.2, 50); // max warp
+            scrollVelRef.current *= 0.82;                    // decay
+
+            const mx = mouseRef.current.x;
+            const my = mouseRef.current.y;
+            const CURSOR_R = 130;
+
+            for (const star of starsRef.current) {
+                // ── Movement (upward on scroll, gentle drift always) ──────────
+                const moveY = star.speed + warp * (0.3 + star.z * 0.7);
+                star.currentY -= moveY;
+                if (star.currentY < -20) {
+                    star.currentY = H + 10;
+                    star.currentX = Math.random() * W;
+                    star.x = star.currentX;
+                }
+
+                // ── Cursor repulsion ──────────────────────────────────────────
+                const dx = star.currentX - mx;
+                const dy = star.currentY - my;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                let glowStrength = 0;
+                if (dist < CURSOR_R && dist > 0) {
+                    glowStrength = 1 - dist / CURSOR_R;
+                    star.currentX += (dx / dist) * glowStrength * 2;
+                    star.currentY += (dy / dist) * glowStrength * 2;
+                }
+
+                const opacity = Math.min(1, star.baseOpacity + glowStrength * 0.7);
+                const radius = star.size + glowStrength * 2;
+
+                // ── Warp trail ────────────────────────────────────────────────
+                if (warp > 4) {
+                    const trailLen = warp * star.z * 5;
+                    const grad = ctx.createLinearGradient(
+                        star.currentX, star.currentY,
+                        star.currentX, star.currentY + trailLen
+                    );
+                    grad.addColorStop(0, `rgba(139, 120, 255, ${opacity * 0.9})`);
+                    grad.addColorStop(1, `rgba(139, 120, 255, 0)`);
+                    ctx.beginPath();
+                    ctx.strokeStyle = grad;
+                    ctx.lineWidth = Math.max(0.5, radius * 0.6);
+                    ctx.moveTo(star.currentX, star.currentY);
+                    ctx.lineTo(star.currentX, star.currentY + trailLen);
+                    ctx.stroke();
+                }
+
+                // ── Star dot ──────────────────────────────────────────────────
+                ctx.beginPath();
+                if (glowStrength > 0.08) {
+                    const grd = ctx.createRadialGradient(
+                        star.currentX, star.currentY, 0,
+                        star.currentX, star.currentY, radius * 4
+                    );
+                    grd.addColorStop(0, `rgba(200, 180, 255, ${opacity})`);
+                    grd.addColorStop(0.4, `rgba(99, 102, 241, ${opacity * 0.5})`);
+                    grd.addColorStop(1, `rgba(99, 102, 241, 0)`);
+                    ctx.fillStyle = grd;
+                    ctx.arc(star.currentX, star.currentY, radius * 4, 0, Math.PI * 2);
+                } else {
+                    ctx.fillStyle = `rgba(210, 200, 255, ${opacity})`;
+                    ctx.arc(star.currentX, star.currentY, radius, 0, Math.PI * 2);
+                }
+                ctx.fill();
+            }
+
+            rafRef.current = requestAnimationFrame(draw);
+        };
+
+        rafRef.current = requestAnimationFrame(draw);
+
+        return () => {
+            cancelAnimationFrame(rafRef.current);
+            window.removeEventListener("resize", resize);
+            window.removeEventListener("scroll", onScroll);
+            window.removeEventListener("mousemove", onMouse);
+        };
+    }, []);
 
     return (
-        <div className="min-h-screen bg-slate-950 text-white selection:bg-indigo-500/30 overflow-hidden relative">
+        <div className="relative min-h-screen bg-[#050508] text-white overflow-x-hidden">
 
-            {/* Dynamic Background Spotlight */}
-            <motion.div
-                className="pointer-events-none fixed inset-0 z-30 transition duration-300 md:block hidden"
-                style={{ background }}
+            {/* ── Fixed canvas starfield ─────────────────────────────────── */}
+            <canvas
+                ref={canvasRef}
+                className="fixed inset-0 w-full h-full pointer-events-none z-0"
             />
 
-            {/* Grid Pattern Overlay */}
-            <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+            {/* ── Ambient glow blobs ─────────────────────────────────────── */}
+            <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+                <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-indigo-700/10 rounded-full blur-[140px]" />
+                <div className="absolute top-[60%] right-[-5%] w-[500px] h-[500px] bg-purple-800/10 rounded-full blur-[120px]" />
+                <div className="absolute bottom-[-10%] left-[-5%] w-[400px] h-[400px] bg-indigo-900/10 rounded-full blur-[100px]" />
+            </div>
 
-            <div className="relative z-10 flex flex-col min-h-screen">
+            {/* ── Content ────────────────────────────────────────────────── */}
+            <div className="relative z-10">
 
                 {/* Navbar */}
-                <nav className="flex items-center justify-between px-6 py-6 max-w-7xl mx-auto w-full">
-                    <div className="flex items-center gap-2">
-                        <div className="h-10 w-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
-                            <Orbit className="h-6 w-6 text-white animate-spin-slow" />
-                        </div>
-                        <span className="text-xl font-bold tracking-tight">Orbit</span>
-                    </div>
-                    <div>
-                        <Link href="/login">
-                            <Button variant="ghost" className="text-gray-300 hover:text-white hover:bg-white/5">
-                                Sign In
-                            </Button>
-                        </Link>
-                    </div>
+                <nav className="fixed top-0 w-full px-6 md:px-10 py-4 flex justify-between items-center backdrop-blur-md bg-black/20 border-b border-white/5 z-50">
+                    <span className="font-black text-xl tracking-tight bg-gradient-to-r from-indigo-300 to-purple-300 bg-clip-text text-transparent">
+                        ⬡ Orbit
+                    </span>
+                    <Link href="/login">
+                        <button className="text-sm font-semibold text-indigo-300 hover:text-white border border-indigo-500/40 hover:border-indigo-400/80 rounded-full px-5 py-2 transition-all duration-200 hover:bg-indigo-500/10 backdrop-blur-sm">
+                            Sign In →
+                        </button>
+                    </Link>
                 </nav>
 
-                {/* Hero Section */}
-                <section className="flex-1 flex flex-col items-center justify-center text-center px-4 py-20 md:py-32">
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.8 }}
-                        className="max-w-4xl mx-auto space-y-8"
-                    >
-                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-sm font-medium mb-4">
-                            <Sparkles className="h-4 w-4" />
-                            <span>Experience the future of connection</span>
-                        </div>
+                {/* ── Hero ─────────────────────────────────────────────────── */}
+                <section className="relative min-h-screen flex flex-col items-center justify-center text-center px-4 pt-24 pb-20">
 
-                        <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-white via-white/90 to-white/50 pb-2">
-                            Sync Your Vibe. <br />
-                            <span className="text-indigo-400">Find Your Orbit.</span>
-                        </h1>
+                    {/* Live badge */}
+                    <div className="inline-flex items-center gap-2 bg-indigo-950/70 border border-indigo-500/30 rounded-full px-4 py-1.5 text-xs font-semibold text-indigo-300 mb-10 backdrop-blur-sm">
+                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
+                        Now live — find your signal
+                    </div>
 
-                        <p className="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed">
-                            The social discovery engine that matches you based on energy, not just aesthetics.
-                            Find your people in a universe of noise.
-                        </p>
+                    {/* Headline */}
+                    <h1 className="text-5xl sm:text-7xl lg:text-8xl font-black tracking-tighter leading-[0.95] mb-6 max-w-5xl">
+                        <span
+                            className="block bg-gradient-to-r from-white via-slate-200 to-indigo-200 bg-clip-text text-transparent"
+                            style={{ filter: "drop-shadow(0 0 40px rgba(99,102,241,0.35))" }}
+                        >
+                            Sync Your Vibe.
+                        </span>
+                        <span
+                            className="block mt-2 bg-gradient-to-r from-indigo-400 via-violet-400 to-fuchsia-400 bg-clip-text text-transparent"
+                            style={{ filter: "drop-shadow(0 0 60px rgba(139,92,246,0.5))" }}
+                        >
+                            Find Your Orbit.
+                        </span>
+                    </h1>
 
-                        <div className="pt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
-                            <Link href="/login">
-                                <Button className="h-14 px-8 text-lg bg-indigo-600 hover:bg-indigo-500 text-white rounded-full shadow-[0_0_40px_-10px_rgba(79,70,229,0.5)] hover:shadow-[0_0_60px_-10px_rgba(79,70,229,0.6)] transition-all duration-300 transform hover:scale-105 group relative overflow-hidden">
-                                    <span className="relative z-10 flex items-center gap-2">
-                                        Enter the Orbit <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
-                                    </span>
-                                    {/* Button sheen effect */}
-                                    <div className="absolute inset-0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent z-0" />
-                                </Button>
-                            </Link>
-                        </div>
-                    </motion.div>
+                    {/* Subheadline */}
+                    <p className="text-slate-400 text-lg md:text-xl max-w-2xl leading-relaxed mb-12">
+                        The social discovery engine that matches you based on energy, not just aesthetics.{" "}
+                        Find your people in a universe of noise.
+                    </p>
+
+                    {/* CTA */}
+                    <Link href="/login">
+                        <button className="group relative px-10 py-4 rounded-2xl font-bold text-lg text-white overflow-hidden transition-all duration-300 hover:scale-105 active:scale-95">
+                            {/* Glow halo behind button */}
+                            <span className="absolute -inset-2 bg-indigo-500/25 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                            {/* Button gradient bg */}
+                            <span className="absolute inset-0 bg-gradient-to-r from-indigo-600 via-violet-600 to-purple-600 opacity-95 group-hover:opacity-100 transition-opacity" />
+                            {/* Top sheen */}
+                            <span className="absolute inset-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.18)]" />
+                            <span className="relative flex items-center gap-2.5">
+                                Enter the Orbit
+                                <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                </svg>
+                            </span>
+                        </button>
+                    </Link>
+
+                    {/* Scroll hint */}
+                    <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 text-slate-600 text-xs animate-bounce select-none">
+                        <span className="tracking-widest uppercase text-[10px]">scroll</span>
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </div>
                 </section>
 
-                {/* Workflow Section */}
-                <section className="py-24 bg-slate-900/50 border-t border-white/5 backdrop-blur-sm">
-                    <div className="max-w-7xl mx-auto px-6">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+                {/* ── How it Works ──────────────────────────────────────────── */}
+                <section className="py-32 px-4 md:px-8 lg:px-16">
+                    <div className="max-w-6xl mx-auto">
+                        <div className="text-center mb-20">
+                            <p className="text-indigo-400 text-xs font-bold tracking-[0.3em] uppercase mb-4">
+                                The System
+                            </p>
+                            <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight">
+                                How it Works
+                            </h2>
+                        </div>
+
+                        <div className="grid md:grid-cols-3 gap-6">
                             {[
                                 {
-                                    icon: Zap,
-                                    title: "The Vibe Quiz",
-                                    desc: "Answer 5 deep questions to calibrate your unique frequency.",
-                                    color: "text-yellow-400",
-                                    bg: "bg-yellow-400/10"
+                                    num: "01",
+                                    icon: "🎵",
+                                    title: "Set Your Vibe",
+                                    desc: "Build a profile based on your current wavelength, music, and late-night aesthetics. No filters. No fronting.",
+                                    accent: "indigo",
+                                    glowColor: "rgba(99,102,241,0.15)",
+                                    borderColor: "rgba(99,102,241,0.2)",
                                 },
                                 {
-                                    icon: Orbit, // Replacing CPU with Orbit for specific vibe
-                                    title: "AI Orbiting",
-                                    desc: "Our engine calculates compatibility scores in real-time.",
-                                    color: "text-indigo-400",
-                                    bg: "bg-indigo-500/10"
+                                    num: "02",
+                                    icon: "⬡",
+                                    title: "Enter the Orbit",
+                                    desc: "Our engine scans the network for overlapping interests and complementary energies, cutting out the creeps.",
+                                    accent: "violet",
+                                    glowColor: "rgba(139,92,246,0.15)",
+                                    borderColor: "rgba(139,92,246,0.2)",
                                 },
                                 {
-                                    icon: Sparkles,
-                                    title: "Instant Connection",
-                                    desc: "Jump into secure, real-time chats with your top matches.",
-                                    color: "text-pink-400",
-                                    bg: "bg-pink-500/10"
-                                }
-                            ].map((step, idx) => (
-                                <motion.div
-                                    key={idx}
-                                    initial={{ opacity: 0, y: 20 }}
-                                    whileInView={{ opacity: 1, y: 0 }}
-                                    viewport={{ once: true }}
-                                    transition={{ delay: idx * 0.2 }}
-                                    className="relative group p-8 rounded-3xl bg-slate-900 border border-white/10 hover:border-indigo-500/30 transition-colors"
+                                    num: "03",
+                                    icon: "✦",
+                                    title: "Sync & Connect",
+                                    desc: "When the vibe is right, the chat unlocks. If the energy shifts, just float away. No pressure. No drama.",
+                                    accent: "fuchsia",
+                                    glowColor: "rgba(217,70,239,0.12)",
+                                    borderColor: "rgba(217,70,239,0.18)",
+                                },
+                            ].map((card) => (
+                                <div
+                                    key={card.num}
+                                    className="group relative bg-slate-900/40 backdrop-blur-md rounded-3xl p-8 overflow-hidden transition-all duration-300 hover:-translate-y-2 hover:bg-slate-900/60"
+                                    style={{ border: `1px solid ${card.borderColor}` }}
                                 >
-                                    <div className={`h-14 w-14 rounded-2xl ${step.bg} ${step.color} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300`}>
-                                        <step.icon className="h-7 w-7" />
+                                    {/* Corner glow */}
+                                    <div
+                                        className="absolute -top-10 -left-10 w-40 h-40 rounded-full blur-2xl opacity-60 group-hover:opacity-100 transition-opacity duration-300"
+                                        style={{ background: `radial-gradient(circle, ${card.glowColor}, transparent 70%)` }}
+                                    />
+                                    <div className="relative">
+                                        <div className="text-5xl mb-5">{card.icon}</div>
+                                        <div className="text-[11px] font-bold text-slate-500 tracking-[0.2em] uppercase mb-2">
+                                            {card.num}
+                                        </div>
+                                        <h3 className="text-xl font-bold text-white mb-3">{card.title}</h3>
+                                        <p className="text-slate-400 text-sm leading-relaxed">{card.desc}</p>
                                     </div>
-                                    <h3 className="text-xl font-bold mb-3 text-gray-100">{step.title}</h3>
-                                    <p className="text-gray-400 leading-relaxed">{step.desc}</p>
-                                </motion.div>
+                                </div>
                             ))}
                         </div>
                     </div>
                 </section>
 
-                {/* Security Section */}
-                <section className="py-24 px-6 relative overflow-hidden">
-                    <div className="absolute inset-0 bg-indigo-900/10 skew-y-3 transform origin-bottom-right z-0 pointer-events-none" />
-                    <div className="max-w-5xl mx-auto text-center relative z-10">
-                        <div className="inline-flex items-center justify-center p-3 rounded-full bg-slate-800 border border-slate-700 mb-8">
-                            <ShieldCheck className="h-6 w-6 text-emerald-400" />
-                        </div>
-                        <h2 className="text-3xl md:text-5xl font-bold mb-6">Your Safe Space in Orbit</h2>
-                        <p className="text-xl text-gray-400 max-w-3xl mx-auto mb-12">
-                            End-to-End Privacy. No Public Profiles. Only matches see you.
-                            <br className="hidden md:block" />
-                            Your data stays in your orbit.
-                        </p>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left max-w-4xl mx-auto">
-                            <div className="p-6 rounded-2xl bg-slate-900/80 border border-emerald-500/20 backdrop-blur-md flex items-start gap-4">
-                                <Lock className="h-6 w-6 text-emerald-400 mt-1 shrink-0" />
-                                <div>
-                                    <h4 className="font-bold text-emerald-100 mb-1">Row-Level Security</h4>
-                                    <p className="text-sm text-gray-400">We use Supabase RLS policies to ensure your chats and data effectively don't exist to anyone but you and your match.</p>
-                                </div>
-                            </div>
-                            <div className="p-6 rounded-2xl bg-slate-900/80 border border-emerald-500/20 backdrop-blur-md flex items-start gap-4">
-                                <ShieldCheck className="h-6 w-6 text-emerald-400 mt-1 shrink-0" />
-                                <div>
-                                    <h4 className="font-bold text-emerald-100 mb-1">Instant Control</h4>
-                                    <p className="text-sm text-gray-400">Block and report tools are just one click away. Our moderation system keeps the orbit clean of bad vibes.</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                {/* ── Footer CTA ────────────────────────────────────────────── */}
+                <section className="py-28 px-4 text-center border-t border-white/[0.04]">
+                    <p className="text-slate-600 text-xs tracking-[0.3em] uppercase mb-8">
+                        Ready to find your signal?
+                    </p>
+                    <Link href="/login">
+                        <button className="group text-indigo-400 hover:text-white font-semibold text-xl transition-all duration-200 relative">
+                            <span className="underline underline-offset-4 decoration-indigo-500/40 group-hover:decoration-indigo-400 transition-colors">
+                                Join the Orbit
+                            </span>
+                            <span className="ml-2 group-hover:translate-x-1 inline-block transition-transform">→</span>
+                        </button>
+                    </Link>
+                    <p className="text-slate-700 text-xs mt-20 tracking-wider">
+                        Orbit · Built for genuine connection
+                    </p>
                 </section>
 
-                {/* Footer */}
-                <footer className="py-12 border-t border-white/5 text-center text-gray-500 text-sm">
-                    <p>© {new Date().getFullYear()} Orbit. Designed for the stars.</p>
-                </footer>
             </div>
         </div>
-    )
+    );
 }
