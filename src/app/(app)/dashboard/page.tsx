@@ -2,7 +2,8 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -20,13 +21,15 @@ interface UserProfile {
 }
 
 export default function DashboardPage() {
+    const router = useRouter()
     const [users, setUsers] = useState<(UserProfile & { matchScore: number, sharedInterest?: string })[]>([])
     const [loading, setLoading] = useState(true)
     const [currentUsername, setCurrentUsername] = useState('')
     const [currentUserId, setCurrentUserId] = useState('')
     const [sentRequests, setSentRequests] = useState<string[]>([])
     const [requestingId, setRequestingId] = useState<string | null>(null)
-    const supabase = createClient()
+    // Memoised so the reference is stable and doesn't retrigger useEffect
+    const supabase = useMemo(() => createClient(), [])
 
     // Helper: AI Match Logic
     const calculateMatch = (myAnswers: number[] | null, theirAnswers: number[] | null) => {
@@ -64,8 +67,12 @@ export default function DashboardPage() {
         const fetchData = async () => {
             try {
                 // 1. Get Current User Auth
-                const { data: { user } } = await supabase.auth.getUser()
-                if (!user) return
+                const { data: { user }, error: authError } = await supabase.auth.getUser()
+                if (authError || !user) {
+                    // No valid session — bounce to login cleanly instead of crashing
+                    router.replace('/login')
+                    return
+                }
 
                 setCurrentUserId(user.id)
 

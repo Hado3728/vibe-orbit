@@ -26,7 +26,9 @@ export default function LoginPage() {
         const { error } = await supabase.auth.signInWithOtp({
             email,
             options: {
-                emailRedirectTo: `${window.location.origin}/verify`,
+                // Must point to our PKCE callback route so the server can
+                // exchange the one-time code and bake it into a session cookie.
+                emailRedirectTo: `${window.location.origin}/api/auth/callback`,
             },
         });
 
