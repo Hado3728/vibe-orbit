@@ -13,9 +13,8 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: "No code provided by Google" });
         }
 
-        // Safety check: Are the Railway environment variables actually loading?
         if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-            return NextResponse.json({ error: "Missing Supabase Environment Variables on Server!" });
+            return NextResponse.json({ error: "Missing Supabase Environment Variables" });
         }
 
         const cookieStore = await cookies();
@@ -25,18 +24,29 @@ export async function GET(request: Request) {
             process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
             {
                 cookies: {
+                    // FOR OLDER SUPABASE VERSIONS (The bug fix)
+                    get(name: string) {
+                        return cookieStore.get(name)?.value;
+                    },
+                    set(name: string, value: string, options: CookieOptions) {
+                        try { cookieStore.set({ name, value, ...options }); } catch (e) { }
+                    },
+                    remove(name: string, options: CookieOptions) {
+                        try { cookieStore.set({ name, value: '', ...options }); } catch (e) { }
+                    },
+                    // FOR NEWER SUPABASE VERSIONS
                     getAll() {
                         return cookieStore.getAll();
                     },
                     setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
                         try {
                             cookiesToSet.forEach(({ name, value, options }) => {
-                                cookieStore.set(name, value, options);
+                                cookieStore.set({ name, value, ...options });
                             });
-                        } catch (error) { }
-                    },
-                },
-            }
+                        } catch (e) { }
+                    }
+                }
+            } as any
         );
 
         const { error } = await supabase.auth.exchangeCodeForSession(code);
@@ -45,10 +55,10 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: "Supabase Rejected the Login", details: error.message });
         }
 
+        // Success! Enter the Orbit.
         return NextResponse.redirect('https://vibe-orbit-production.up.railway.app/dashboard');
 
     } catch (err: any) {
-        // THIS CATCHES THE FATAL CRASH AND PRINTS IT ON THE SCREEN
         return NextResponse.json({
             error: "FATAL SERVER CRASH",
             message: err.message,
