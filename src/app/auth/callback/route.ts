@@ -13,16 +13,14 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: "No code provided" });
         }
 
-        // 1. Create the final destination response BEFORE initializing Supabase
         const response = NextResponse.redirect('https://vibe-orbit-production.up.railway.app/dashboard');
         const cookieStore = await cookies();
 
-        // 2. Initialize Supabase and force it to write cookies into our 'response' object
         const supabase = createServerClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
             process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
             {
-                // We use "as any" to force TypeScript to accept our universal methods
+                // @ts-ignore - Forcing TypeScript to completely ignore the version mismatch rules here
                 cookies: {
                     get(name: string) {
                         return cookieStore.get(name)?.value;
@@ -36,23 +34,21 @@ export async function GET(request: Request) {
                     getAll() {
                         return cookieStore.getAll();
                     },
-                    setAll(cookiesToSet: { name: string; value: string; options: any }[]) {
+                    setAll(cookiesToSet: any[]) {
                         cookiesToSet.forEach(({ name, value, options }) => {
                             response.cookies.set(name, value, options);
                         });
                     }
-                } as any
+                }
             }
         );
 
-        // 3. Exchange code
         const { error } = await supabase.auth.exchangeCodeForSession(code);
 
         if (error) {
             return NextResponse.json({ error: "Supabase Rejected", details: error.message });
         }
 
-        // 4. Ship the response with the baked-in cookies
         return response;
 
     } catch (err: any) {
