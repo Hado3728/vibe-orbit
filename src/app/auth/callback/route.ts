@@ -16,7 +16,17 @@ export async function GET(request: Request) {
             process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
             {
                 cookies: {
-                    // Modern @supabase/ssr v0.5+ API (Strictly required for Next.js 15/16)
+                    // FOR OLDER VERSIONS (Bypassing Railway Cache)
+                    get(name: string) {
+                        return cookieStore.get(name)?.value;
+                    },
+                    set(name: string, value: string, options: any) {
+                        try { cookieStore.set({ name, value, ...options }); } catch (e) { }
+                    },
+                    remove(name: string, options: any) {
+                        try { cookieStore.set({ name, value: '', ...options }); } catch (e) { }
+                    },
+                    // FOR NEWER VERSIONS (Next.js 15)
                     getAll() {
                         return cookieStore.getAll();
                     },
@@ -25,13 +35,10 @@ export async function GET(request: Request) {
                             cookiesToSet.forEach(({ name, value, options }) => {
                                 cookieStore.set(name, value, options);
                             });
-                        } catch (error) {
-                            // Expected: Next.js throws if cookies are set after the response starts
-                            // but @supabase/ssr handles this internally.
-                        }
+                        } catch (error) { }
                     },
                 },
-            }
+            } as any
         );
 
         const { error } = await supabase.auth.exchangeCodeForSession(code);
