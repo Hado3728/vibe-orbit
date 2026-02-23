@@ -22,6 +22,7 @@ export async function GET(request: Request) {
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
             process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
             {
+                // We use "as any" to force TypeScript to accept our universal methods
                 cookies: {
                     get(name: string) {
                         return cookieStore.get(name)?.value;
@@ -40,11 +41,11 @@ export async function GET(request: Request) {
                             response.cookies.set(name, value, options);
                         });
                     }
-                }
+                } as any
             }
         );
 
-        // 3. Exchange code. Supabase will trigger setAll and mutate our response object.
+        // 3. Exchange code
         const { error } = await supabase.auth.exchangeCodeForSession(code);
 
         if (error) {
