@@ -10,43 +10,40 @@ export async function GET(request: Request) {
         const code = searchParams.get('code');
 
         if (!code) {
-            return NextResponse.json({ error: "No code provided" });
+            return NextResponse.json({ error: "No code provided by Google" });
         }
 
-        const response = NextResponse.redirect('https://vibe-orbit-production.up.railway.app/dashboard');
         const cookieStore = await cookies();
 
-        // THE TROJAN HORSE
-        // We create an empty 'any' object so TypeScript ignores it completely.
-        const cookieMethods = {} as any;
-
-        // We sneak the Legacy methods in one by one (Bypasses the "Object literal" strict check)
-        cookieMethods.get = (name: string) => cookieStore.get(name)?.value;
-        cookieMethods.set = (name: string, value: string, options: any) => response.cookies.set(name, value, options);
-        cookieMethods.remove = (name: string, options: any) => response.cookies.set(name, '', { ...options, maxAge: 0 });
-
-        // We sneak the Modern methods in
-        cookieMethods.getAll = () => cookieStore.getAll();
-        cookieMethods.setAll = (cookiesToSet: any[]) => {
-            cookiesToSet.forEach(({ name, value, options }) => {
-                response.cookies.set(name, value, options);
-            });
-        };
-
-        // We pass the fully loaded Trojan Horse to Supabase
+        // The pure, modern implementation. No legacy 'get' or 'set' methods.
         const supabase = createServerClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
             process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-            { cookies: cookieMethods }
+            {
+                cookies: {
+                    getAll() {
+                        return cookieStore.getAll();
+                    },
+                    setAll(cookiesToSet: { name: string; value: string; options: any }[]) {
+                        try {
+                            cookiesToSet.forEach(({ name, value, options }) => {
+                                cookieStore.set(name, value, options);
+                            });
+                        } catch (error) {
+                            // Next.js requires this catch block for Server Components
+                        }
+                    },
+                },
+            }
         );
 
         const { error } = await supabase.auth.exchangeCodeForSession(code);
 
         if (error) {
-            return NextResponse.json({ error: "Supabase Rejected", details: error.message });
+            return NextResponse.json({ error: "Supabase Rejected the Login", details: error.message });
         }
 
-        return response;
+        return NextResponse.redirect('https://vibe-orbit-production.up.railway.app/dashboard');
 
     } catch (err: any) {
         return NextResponse.json({
