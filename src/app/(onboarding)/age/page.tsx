@@ -47,6 +47,9 @@ export default function AgePage() {
 
             if (updateError) throw updateError
 
+            // CRITICAL: Refresh session to sync updated metadata with the JWT cookie
+            await supabase.auth.refreshSession()
+
             router.push('/interests')
         } catch (e: any) {
             setError(e.message)

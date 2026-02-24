@@ -50,6 +50,9 @@ export default function InterestsPage() {
 
             if (error) throw error
 
+            // CRITICAL: Refresh session to sync updated metadata with the JWT cookie
+            await supabase.auth.refreshSession()
+
             router.push('/dashboard')
         } catch (e) {
             console.error(e)

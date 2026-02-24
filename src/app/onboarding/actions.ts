@@ -33,6 +33,10 @@ export async function onboardUser(formData: {
             }
         })
         if (authError) throw new Error(`Auth Update Failed: ${authError.message}`)
+        console.log("✅ AUTH METADATA SYNCED");
+
+        // CRITICAL: Refresh session on the server to ensure the updated metadata is baked into the JWT
+        await supabase.auth.refreshSession()
 
         // 3. Update/Upsert public.users profile (The definitive Source of Truth)
         const { error: dbError } = await supabase.from('users').upsert({
