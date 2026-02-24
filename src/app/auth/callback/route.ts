@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
-// THE FIX: We import the ENTIRE module to stop Turbopack from destroying the named exports
-import * as SupabaseSSR from '@supabase/ssr';
-import * as NextHeaders from 'next/headers';
+import { cookies } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,13 +7,12 @@ export async function GET(request: Request) {
     let currentStep = '0. Booting Route';
 
     try {
-        currentStep = '1. Bypassing Turbopack Interop';
-        // If Turbopack drops the export, this will catch it immediately instead of throwing void 0
-        if (typeof SupabaseSSR.createServerClient !== 'function') {
-            throw new Error(`Turbopack dropped createServerClient! Available exports: ${Object.keys(SupabaseSSR).join(', ')}`);
-        }
-        if (typeof NextHeaders.cookies !== 'function') {
-            throw new Error("Next.js cookies() function is missing from headers!");
+        currentStep = '1. Dynamic Runtime Import (Bypassing Turbopack)';
+        // THE FIX: We dynamically import Supabase strictly at runtime so the compiler can't break it
+        const { createServerClient } = await import('@supabase/ssr');
+
+        if (typeof createServerClient !== 'function') {
+            throw new Error("Dynamic import failed! createServerClient is still missing.");
         }
 
         currentStep = '2. Parsing URL';
@@ -27,10 +24,10 @@ export async function GET(request: Request) {
         }
 
         currentStep = '3. Awaiting Cookies';
-        const cookieStore = await NextHeaders.cookies();
+        const cookieStore = await cookies();
 
         currentStep = '4. Initializing Supabase';
-        const supabase = SupabaseSSR.createServerClient(
+        const supabase = createServerClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
             process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
             {
@@ -38,9 +35,8 @@ export async function GET(request: Request) {
                     getAll() {
                         return cookieStore.getAll();
                     },
-                    setAll(cookiesToSet) {
+                    setAll(cookiesToSet: any[]) {
                         try {
-                            // Standard Next.js 15 route handler cookie setting
                             cookiesToSet.forEach(({ name, value, options }) => {
                                 cookieStore.set(name, value, options);
                             });
@@ -63,7 +59,6 @@ export async function GET(request: Request) {
         return NextResponse.redirect('https://vibe-orbit-production.up.railway.app/dashboard');
 
     } catch (err: any) {
-        // This will print EXACTLY which step failed
         return NextResponse.json({
             error: "FATAL SERVER CRASH",
             failed_at_step: currentStep,
