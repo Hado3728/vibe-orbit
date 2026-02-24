@@ -30,14 +30,22 @@ const Navbar = () => {
                 ) : user ? (
                     <>
                         <div className="text-sm text-muted-foreground hidden sm:block">
-                            {user.email}
+                            {user.user_metadata?.full_name || user.email}
                         </div>
                         <form action="/auth/signout" method="post">
                             <Button variant="ghost" type="submit">Sign Out</Button>
                         </form>
                         <Link href="/profile">
-                            <Button size="icon" variant="secondary" className="rounded-full">
-                                <User className="h-4 w-4" />
+                            <Button size="icon" variant="secondary" className="rounded-full overflow-hidden">
+                                {user.user_metadata?.avatar_url ? (
+                                    <img
+                                        src={user.user_metadata.avatar_url}
+                                        alt={user.user_metadata?.full_name || 'Profile'}
+                                        className="h-full w-full object-cover"
+                                    />
+                                ) : (
+                                    <User className="h-4 w-4" />
+                                )}
                             </Button>
                         </Link>
                     </>
