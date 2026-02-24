@@ -3,10 +3,13 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 
 /**
  * onboardUser
+ * VIP PASS EDITION:
  * Atomic server action to finalize user registration and break the redirect loop.
+ * Includes manual 'has_onboarded' cookie override to bypass edge caching.
  */
 export async function onboardUser(formData: {
     username: string
@@ -14,11 +17,13 @@ export async function onboardUser(formData: {
     interests: string[]
     quizAnswers: number[]
 }) {
+    console.log("🚀 STARTING ONBOARDING SUBMISSION for:", formData.username);
     const supabase = await createClient()
 
     // 1. Get Current User
     const { data: { user }, error: userError } = await supabase.auth.getUser()
     if (userError || !user) {
+        console.error("❌ AUTH FAILED during onboarding:", userError);
         return { success: false, error: 'Authentication failed. Please log in again.' }
     }
 
@@ -31,10 +36,14 @@ export async function onboardUser(formData: {
                 username: formData.username
             }
         })
-        if (authError) throw new Error(`Auth Update Failed: ${authError.message}`)
+        if (authError) {
+            console.error("❌ AUTH METADATA UPDATE FAILED:", authError);
+            throw new Error(`Auth Update Failed: ${authError.message}`)
+        }
+        console.log("✅ AUTH METADATA SYNCED");
 
         // 3. Update/Upsert public.users profile (Source of Truth)
-        const { error: dbError } = await supabase.from('users').upsert({
+        const { data: dbData, error: dbError } = await supabase.from('users').upsert({
             id: user.id,
             username: formData.username.toLowerCase(),
             age: formData.age,
@@ -42,12 +51,30 @@ export async function onboardUser(formData: {
             quiz_answers: formData.quizAnswers,
             onboarded: true,
             created_at: new Date().toISOString()
-        })
-        if (dbError) throw new Error(`Database Update Failed: ${dbError.message}`)
+        }).select()
 
-        // 4. THE LOOP KILLER: Clear the Next.js Cache
+        if (dbError) {
+            console.error("❌ DATABASE UPSERT FAILED:", dbError);
+            throw new Error(`Database Update Failed: ${dbError.message}`)
+        }
+        console.log("✅ DATABASE UPDATE SUCCESS:", dbData);
+
+        // 4. THE VIP PASS: Set Bypass Cookie
+        // This cookie is checked by Middleware before any Supabase logic to break loops.
+        const cookieStore = await cookies();
+        cookieStore.set('has_onboarded', 'true', {
+            path: '/',
+            maxAge: 60 * 60 * 24 * 30, // 30 days
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax'
+        });
+        console.log("✅ VIP PASS (has_onboarded) COOKIE SET");
+
+        // 5. CACHE DESTRUCTION
         // We nuke the router cache for the entire site to ensure the layout guard picks up the change
         revalidatePath('/', 'layout')
+        console.log("✅ SITE CACHE INVALIDATED");
 
     } catch (error: any) {
         // Essential: Allow Next.js redirect to function
@@ -57,6 +84,7 @@ export async function onboardUser(formData: {
         return { success: false, error: error.message }
     }
 
-    // 5. Hard Redirect to Dashboard
+    // 6. Force Move to Dashboard
+    console.log("🏁 REDIRECTING TO DASHBOARD");
     redirect('/dashboard')
 }

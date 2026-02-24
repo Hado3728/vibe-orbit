@@ -2,12 +2,22 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 /**
- * Bulletproof Middleware
+ * Bulletproof Middleware - VIP PASS VERSION
  * Standardized session maintenance & basic route protection.
- * Note: Database-level checks (like onboarding status) are handled in the AppLayout
- * to avoid Edge-caching stale data and high-latency DB calls in the middleware.
+ * Added high-priority 'has_onboarded' cookie check to instantly kill quiz loops.
  */
 export async function middleware(request: NextRequest) {
+    const url = new URL(request.url)
+    const { pathname } = url
+
+    // --- STEP 0: VIP PASS BYPASS ---
+    // If the user has the 'has_onboarded' cookie, instantly warp them to dashboard if they are on /quiz
+    const hasOnboardedCookie = request.cookies.get('has_onboarded')?.value === 'true'
+
+    if ((pathname === '/quiz' || pathname === '/onboarding') && hasOnboardedCookie) {
+        return NextResponse.redirect(new URL('/dashboard', request.url))
+    }
+
     let supabaseResponse = NextResponse.next({
         request,
     })
@@ -35,9 +45,6 @@ export async function middleware(request: NextRequest) {
 
     // IMPORTANT: Use getUser() for secure session verification
     const { data: { user } } = await supabase.auth.getUser()
-
-    const url = new URL(request.url)
-    const { pathname } = url
 
     // 1. ALWAYS ignore internal paths and static assets
     if (
