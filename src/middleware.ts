@@ -27,10 +27,53 @@ export async function middleware(request: NextRequest) {
         }
     )
 
-    // This will refresh the session if expired - essential for keeping the user logged in
-    // Note: We don't perform redirects here to avoid complex loops with new OAuth users.
-    // Redirection logic is handled at the layout/page level (Server Components).
-    await supabase.auth.getUser()
+    // IMPORTANT: Use getUser() for fresh, secure server-side verification
+    const { data: { user } } = await supabase.auth.getUser()
+
+    const url = new URL(request.url)
+    const { pathname } = url
+
+    // Step D: ALWAYS ignore internal paths and static assets
+    if (
+        pathname.startsWith('/_next') ||
+        pathname.startsWith('/api') ||
+        pathname.startsWith('/auth') ||
+        pathname.includes('.') // matches favicon, images, etc.
+    ) {
+        return supabaseResponse
+    }
+
+    // Guard against redundant redirects: If already on a target page, skip
+    const isOnOnboarding = pathname.startsWith('/onboarding') || pathname.startsWith('/quiz')
+    const isOnDashboard = pathname.startsWith('/dashboard') || pathname.startsWith('/profile') || pathname.startsWith('/admin')
+    const isOnLogin = pathname.startsWith('/login')
+
+    // Step A: Protect App Routes
+    if (isOnDashboard && !user) {
+        return NextResponse.redirect(new URL('/login', request.url))
+    }
+
+    // Step B & C: Handle Onboarding Progress
+    if (user) {
+        // Fetch fresh profile state
+        const { data: profile } = await supabase
+            .from('users')
+            .select('onboarded')
+            .eq('id', user.id)
+            .single()
+
+        const onboarded = profile?.onboarded || false
+
+        // If not onboarded and trying to access app, redirect to onboarding
+        if (isOnDashboard && !onboarded) {
+            return NextResponse.redirect(new URL('/onboarding', request.url))
+        }
+
+        // Step C: If onboarded and trying to access onboarding/login, redirect to dashboard
+        if ((isOnOnboarding || isOnLogin) && onboarded) {
+            return NextResponse.redirect(new URL('/dashboard', request.url))
+        }
+    }
 
     return supabaseResponse
 }
@@ -42,7 +85,6 @@ export const config = {
          * - _next/static (static files)
          * - _next/image (image optimization files)
          * - favicon.ico (favicon file)
-         * Feel free to modify this pattern to include more paths.
          */
         '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
     ],

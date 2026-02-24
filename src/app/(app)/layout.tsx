@@ -1,40 +1,16 @@
 import { Sidebar } from '@/components/layout/Sidebar'
 import Navbar from '@/components/layout/Navbar'
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
 
-export default async function AppLayout({
+/**
+ * AppLayout
+ * Redirection logic is handled by middleware.ts for better performance 
+ * and to prevent infinite redirect loops during onboarding.
+ */
+export default function AppLayout({
     children,
 }: {
     children: React.ReactNode
 }) {
-    const supabase = await createClient()
-
-    // 1. Check Auth Session
-    const { data: { user } } = await supabase.auth.getUser()
-
-    // If NO session, go to login
-    if (!user) {
-        redirect('/login')
-    }
-
-    // 2. Check Profile Status (The Vibe Guard)
-    const { data: profile } = await supabase
-        .from('users')
-        .select('onboarded')
-        .eq('id', user.id)
-        .single()
-
-    // Determine current path to avoid recursive loops
-    // Note: In Server Components, we don't have access to the URL directly, 
-    // but the layout only wraps routes under (app).
-    // Onboarding routes are under (onboarding). 
-
-    // If session exists but profile is missing or not onboarded, go to onboarding
-    if (!profile || !profile.onboarded) {
-        redirect('/onboarding')
-    }
-
     return (
         <div className="flex h-screen overflow-hidden bg-transparent">
             {/* Sidebar is fixed width, non-scrolling */}
