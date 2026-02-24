@@ -2,22 +2,11 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 /**
- * Bulletproof Middleware - VIP PASS VERSION
- * Standardized session maintenance & basic route protection.
- * Added high-priority 'has_onboarded' cookie check to instantly kill quiz loops.
+ * Bulletproof Middleware - Auth Sync Edition
+ * Forces fresh session verification via getUser() to bypass stale cookies.
+ * Safeguards against the 'Quiz Loop' by checking user_metadata in real-time.
  */
 export async function middleware(request: NextRequest) {
-    const url = new URL(request.url)
-    const { pathname } = url
-
-    // --- STEP 0: VIP PASS BYPASS ---
-    // If the user has the 'has_onboarded' cookie, instantly warp them to dashboard if they are on /quiz
-    const hasOnboardedCookie = request.cookies.get('has_onboarded')?.value === 'true'
-
-    if ((pathname === '/quiz' || pathname === '/onboarding') && hasOnboardedCookie) {
-        return NextResponse.redirect(new URL('/dashboard', request.url))
-    }
-
     let supabaseResponse = NextResponse.next({
         request,
     })
@@ -43,10 +32,13 @@ export async function middleware(request: NextRequest) {
         }
     )
 
-    // IMPORTANT: Use getUser() for secure session verification
+    // CRITICAL: Force fresh user data from Supabase Auth (not just the session cookie)
     const { data: { user } } = await supabase.auth.getUser()
 
-    // 1. ALWAYS ignore internal paths and static assets
+    const url = new URL(request.url)
+    const { pathname } = url
+
+    // 1. Static/Internal path bypass
     if (
         pathname.startsWith('/_next') ||
         pathname.startsWith('/api') ||
@@ -57,22 +49,45 @@ export async function middleware(request: NextRequest) {
     }
 
     // Path classification
-    const isOnDashboard = pathname.startsWith('/dashboard') ||
+    const isAppPath = pathname.startsWith('/dashboard') ||
         pathname.startsWith('/profile') ||
         pathname.startsWith('/admin') ||
-        pathname.startsWith('/rooms')
+        pathname.startsWith('/rooms') ||
+        pathname.startsWith('/chat') ||
+        pathname.startsWith('/requests')
 
-    const isOnAuth = pathname.startsWith('/login') || pathname === '/'
+    const isAuthPath = pathname === '/login' || pathname === '/'
+    const isOnboardingPath = pathname.startsWith('/onboarding') ||
+        pathname.startsWith('/quiz') ||
+        pathname.startsWith('/interests')
 
-    // 2. Protect App Routes (Session Check Only)
-    if (isOnDashboard && !user) {
+    // Onboarding status from fresh metadata
+    const isOnboarded = user?.user_metadata?.onboarded === true
+
+    // --- ROUTING LOGIC ---
+
+    // A. Unauthorized access -> Login
+    if (isAppPath && !user) {
         return NextResponse.redirect(new URL('/login', request.url))
     }
 
-    // 3. Auto-Login (Redirect to dashboard if session exists and hitting /, /login)
-    // Note: If they aren't onboarded, the AppLayout will catch them and send to /onboarding.
-    if (user && isOnAuth) {
+    // B. Auto-Login -> Dashboard (but check onboarding first)
+    if (user && isAuthPath) {
+        if (isOnboarded) {
+            return NextResponse.redirect(new URL('/dashboard', request.url))
+        } else {
+            return NextResponse.redirect(new URL('/onboarding', request.url))
+        }
+    }
+
+    // C. The Quiz Loop Killer: Prevent onboarded users from hitting onboarding/quiz
+    if (user && isOnboardingPath && isOnboarded) {
         return NextResponse.redirect(new URL('/dashboard', request.url))
+    }
+
+    // D. Force Onboarding: Redirect un-onboarded users to onboarding if trying to access App
+    if (user && isAppPath && !isOnboarded) {
+        return NextResponse.redirect(new URL('/onboarding', request.url))
     }
 
     return supabaseResponse
