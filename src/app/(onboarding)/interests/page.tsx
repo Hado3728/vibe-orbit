@@ -50,7 +50,7 @@ export default function InterestsPage() {
 
             if (error) throw error
 
-            router.push('/quiz')
+            router.push('/dashboard')
         } catch (e) {
             console.error(e)
         } finally {
