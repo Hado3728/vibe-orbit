@@ -83,7 +83,14 @@ export default function DashboardPage() {
                     .eq('id', user.id)
                     .single()
 
-                if (myError) throw myError
+                if (myError) {
+                    if (myError.code === 'PGRST116') {
+                        // User exists in Auth but not in our public.users table yet
+                        router.replace('/onboarding')
+                        return
+                    }
+                    throw myError
+                }
                 setCurrentUsername(myProfile.username || 'Traveler')
 
                 // 3. Fetch Other Users

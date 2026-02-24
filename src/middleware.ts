@@ -28,6 +28,8 @@ export async function middleware(request: NextRequest) {
     )
 
     // This will refresh the session if expired - essential for keeping the user logged in
+    // Note: We don't perform redirects here to avoid complex loops with new OAuth users.
+    // Redirection logic is handled at the layout/page level (Server Components).
     await supabase.auth.getUser()
 
     return supabaseResponse

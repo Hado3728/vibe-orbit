@@ -2,13 +2,12 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
 
 async function checkAdmin() {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) redirect('/login')
+    if (!user) return null
 
     const { data: userData } = await supabase
         .from('users')
@@ -16,54 +15,69 @@ async function checkAdmin() {
         .eq('id', user.id)
         .single()
 
-    if (!userData?.is_admin) redirect('/dashboard')
+    if (!userData?.is_admin) return null
 
     return supabase
 }
 
-export async function resolveReport(reportId: string) {
+export async function updateReportStatus(reportId: string, status: 'pending' | 'investigating' | 'resolved') {
     const supabase = await checkAdmin()
+    if (!supabase) return false
 
-    await supabase
-        .from('reports')
-        .update({ resolved: true })
-        .eq('id', reportId)
+    try {
+        const { error } = await supabase
+            .from('reports')
+            .update({ status })
+            .eq('id', reportId)
 
-    revalidatePath('/admin')
+        if (error) throw error
+        revalidatePath('/admin')
+        return true
+    } catch (error) {
+        console.error('Error updating report status:', error)
+        return false
+    }
 }
 
-export async function deleteMessage(messageId: number) {
+export async function createAdminMessage(reportId: string, senderId: string, recipientId: string, content: string) {
     const supabase = await checkAdmin()
+    if (!supabase) return false
 
-    await supabase
-        .from('messages')
-        .delete()
-        .eq('id', messageId)
+    try {
+        const { error } = await supabase
+            .from('admin_messages')
+            .insert({
+                report_id: reportId,
+                sender_id: senderId,
+                recipient_id: recipientId,
+                content
+            })
 
-    // Also mark related reports as resolved?
-    // Let's just resolve reports linked to this message to keep dashboard clean
-    await supabase
-        .from('reports')
-        .update({ resolved: true })
-        .eq('message_id', messageId)
-
-    revalidatePath('/admin')
+        if (error) throw error
+        return true
+    } catch (error) {
+        console.error('Error sending admin message:', error)
+        return false
+    }
 }
 
 export async function banUser(userId: string) {
     const supabase = await checkAdmin()
+    if (!supabase) return false
 
-    // Delete from public.users - Cascade will handle the rest (auth.users remains but they can't log in effectively if app logic relies on public.users)
-    // Actually, to fully ban, we should ideally delete from auth.users via service role, but for now we are managing public.users.
-    // If our middleware checks for public.users record, deleting it bans them.
-    // Middleware checks: onboarded/age_verified metadata. 
-    // If we delete public.user, RLS will fail for them.
-    // Let's delete the public user record.
+    try {
+        // In this implementation, deleting the public profile effectively bans them
+        // if the app requires profile existence for access.
+        const { error } = await supabase
+            .from('users')
+            .delete()
+            .eq('id', userId)
 
-    await supabase
-        .from('users')
-        .delete()
-        .eq('id', userId)
-
-    revalidatePath('/admin')
+        if (error) throw error
+        revalidatePath('/admin')
+        return true
+    } catch (error) {
+        console.error('Error banning user:', error)
+        return false
+    }
 }
