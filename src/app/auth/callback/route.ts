@@ -1,69 +1,52 @@
-import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-
-export const dynamic = 'force-dynamic';
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
+import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
-    let currentStep = '0. Booting Route';
+    const { searchParams, origin } = new URL(request.url)
+    const code = searchParams.get('code')
+    // if "next" is in param, use it as the redirection URL
+    const next = searchParams.get('next') ?? '/dashboard'
 
-    try {
-        currentStep = '1. Dynamic Runtime Import (Bypassing Turbopack)';
-        // THE FIX: We dynamically import Supabase strictly at runtime so the compiler can't break it
-        const { createServerClient } = await import('@supabase/ssr');
-
-        if (typeof createServerClient !== 'function') {
-            throw new Error("Dynamic import failed! createServerClient is still missing.");
-        }
-
-        currentStep = '2. Parsing URL';
-        const { searchParams } = new URL(request.url);
-        const code = searchParams.get('code');
-
-        if (!code) {
-            return NextResponse.json({ error: "No OAuth code provided by Google" });
-        }
-
-        currentStep = '3. Awaiting Cookies';
-        const cookieStore = await cookies();
-
-        currentStep = '4. Initializing Supabase';
+    if (code) {
+        const cookieStore = await cookies()
         const supabase = createServerClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
             process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
             {
                 cookies: {
                     getAll() {
-                        return cookieStore.getAll();
+                        return cookieStore.getAll()
                     },
-                    setAll(cookiesToSet: any[]) {
+                    setAll(cookiesToSet) {
                         try {
-                            cookiesToSet.forEach(({ name, value, options }) => {
-                                cookieStore.set(name, value, options);
-                            });
-                        } catch (error) {
-                            // Safe to ignore in route handlers
+                            cookiesToSet.forEach(({ name, value, options }) =>
+                                cookieStore.set(name, value, options)
+                            )
+                        } catch {
+                            // The `setAll` method was called from a Server Component.
+                            // This can be ignored if you have middleware refreshing
+                            // user sessions.
                         }
                     },
                 },
             }
-        );
-
-        currentStep = '5. Exchanging Code for Session';
-        const { error } = await supabase.auth.exchangeCodeForSession(code);
-
-        if (error) {
-            throw new Error(`Supabase Rejected Login: ${error.message}`);
+        )
+        const { error } = await supabase.auth.exchangeCodeForSession(code)
+        if (!error) {
+            const forwardedHost = request.headers.get('x-forwarded-host') // original origin before load balancer
+            const isLocalEnv = process.env.NODE_ENV === 'development'
+            if (isLocalEnv) {
+                // we can be sure that there is no proxy after localhost in dev mode
+                return NextResponse.redirect(`${origin}${next}`)
+            } else if (forwardedHost) {
+                return NextResponse.redirect(`https://${forwardedHost}${next}`)
+            } else {
+                return NextResponse.redirect(`${origin}${next}`)
+            }
         }
-
-        currentStep = '6. Redirecting to Dashboard';
-        return NextResponse.redirect('https://vibe-orbit-production.up.railway.app/dashboard');
-
-    } catch (err: any) {
-        return NextResponse.json({
-            error: "FATAL SERVER CRASH",
-            failed_at_step: currentStep,
-            message: err.message,
-            stack: err.stack
-        });
     }
+
+    // return the user to an error page with instructions
+    return NextResponse.redirect(`${origin}/login?error=auth_callback_failed`)
 }

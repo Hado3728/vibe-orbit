@@ -26,9 +26,6 @@
     "paths": {
       "@/*": [
         "./src/*"
-      ],
-      "@supabase/ssr": [
-        "./node_modules/@supabase/ssr/dist/main/index.d.ts"
       ]
     }
   },
