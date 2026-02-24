@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/Input'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { generateUsername } from '@/lib/generateUsername'
+import { onboardUser } from '@/app/onboarding/actions'
 import { ArrowRight, Check, Sparkles, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -120,39 +121,25 @@ export default function OnboardingPage() {
 
         try {
             const username = generateUsername()
-            const { data: { user } } = await supabase.auth.getUser()
 
-            if (!user) throw new Error("No authenticated user found")
-
-            // 1. Update Auth Metadata
-            const { error: authError } = await supabase.auth.updateUser({
-                data: {
-                    onboarded: true,
-                    age_verified: true,
-                    username
-                }
-            })
-            if (authError) throw authError
-
-            // 2. Upsert to public.users
-            const { error: dbError } = await supabase.from('users').upsert({
-                id: user.id,
+            // Call the Server Action
+            const result = await onboardUser({
                 username,
                 age: parseInt(age),
                 interests,
-                quiz_answers: finalAnswers,
-                created_at: new Date().toISOString()
+                quizAnswers: finalAnswers
             })
-            if (dbError) throw dbError
 
-            router.push('/dashboard')
+            if (result && !result.success) {
+                throw new Error(result.error)
+            }
+
+            // Note: Server action handles the redirect
         } catch (e: any) {
             setError(e.message)
-            setStep(3) // Go back to quiz if fail
-            setQuizAnswers([]) // Reset quiz to try again? Or maybe just keep answers. 
-            // Resetting might be annoying. Let's just keep them but allow retrying submission.
-            // Actually, for simplicity in this flow, if it fails, we show error on step 4 or go back.
-            // Let's stay on step 4 but show error text.
+            setStep(3)
+            setQuizAnswers([])
+            setLoading(false)
         }
     }
 

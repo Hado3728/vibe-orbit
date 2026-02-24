@@ -25,8 +25,12 @@ export default async function AppLayout({
         .eq('id', user.id)
         .single()
 
+    // Determine current path to avoid recursive loops
+    // Note: In Server Components, we don't have access to the URL directly, 
+    // but the layout only wraps routes under (app).
+    // Onboarding routes are under (onboarding). 
+
     // If session exists but profile is missing or not onboarded, go to onboarding
-    // DO NOT redirect to /login here.
     if (!profile || !profile.onboarded) {
         redirect('/onboarding')
     }

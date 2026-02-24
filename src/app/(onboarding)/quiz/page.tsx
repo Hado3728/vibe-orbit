@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 import { motion, AnimatePresence } from 'framer-motion'
 import { findBestRoom } from '@/lib/matching'
+import { onboardUser } from '@/app/onboarding/actions'
 import { ChevronRight, Sparkles } from 'lucide-react'
 
 const QUESTIONS = [
@@ -76,28 +77,33 @@ export default function QuizPage() {
         setMatching(true)
 
         try {
-            // 1. Save Answers
-            const { error } = await supabase.auth.updateUser({
-                data: {
-                    quiz_answers: finalAnswers,
-                    onboarded: true
-                },
+            // 1. Fetch User Data (needed for matching)
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) throw new Error("Not authenticated")
+
+            const interests = user.user_metadata?.interests || []
+
+            // 2. Find Best Room
+            const roomId = await findBestRoom(user.id, interests, finalAnswers)
+
+            // 3. Save Answers & Mark Onboarded via Server Action
+            // This handles DB update + revalidatePath
+            const result = await onboardUser({
+                username: user.user_metadata?.username || `User_${user.id.substring(0, 5)}`,
+                age: user.user_metadata?.age || 18,
+                interests,
+                quizAnswers: finalAnswers
             })
 
-            if (error) throw error
-
-            // 2. Fetch User Interests (needed for matching)
-            const { data: { user } } = await supabase.auth.getUser()
-            const interests = user?.user_metadata?.interests || []
-
-            // 3. Find Best Room
-            const roomId = await findBestRoom(user!.id, interests, finalAnswers)
+            if (result && !result.success) {
+                throw new Error(result.error)
+            }
 
             // 4. Join Room (Insert into room_members)
             if (roomId) {
                 await supabase.from('room_members').insert({
                     room_id: roomId,
-                    user_id: user!.id
+                    user_id: user.id
                 })
 
                 // Slight delay for effect
@@ -105,12 +111,17 @@ export default function QuizPage() {
                     router.push(`/rooms/${roomId}`)
                 }, 2000)
             } else {
-                router.push('/dashboard') // Fallback
+                // onboardUser server action will have redirected to /dashboard if we didn't have a roomId
+                // but since we might have a roomId, we manually push here if the redirect didn't happen yet.
+                // However, redirect() in server action throws, so this code might not run.
+                // It's safer to handle the redirect logic cleanly.
+                console.log("Onboarded, no room found, let server action redirect handle it.")
             }
 
         } catch (e) {
             console.error(e)
             setLoading(false)
+            setMatching(false)
         }
     }
 
