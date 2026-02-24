@@ -1,16 +1,41 @@
 import { Sidebar } from '@/components/layout/Sidebar'
 import Navbar from '@/components/layout/Navbar'
+import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
 
 /**
- * AppLayout
- * Redirection logic is handled by middleware.ts for better performance 
- * and to prevent infinite redirect loops during onboarding.
+ * AppLayout (The Vibe Guard)
+ * Performs the definitive server-side check for onboarding status.
+ * This runs on every dashboard/app route request.
  */
-export default function AppLayout({
+export default async function AppLayout({
     children,
 }: {
     children: React.ReactNode
 }) {
+    const supabase = await createClient()
+
+    // 1. Double-Check Auth (redundant but safe)
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+        redirect('/login')
+    }
+
+    // 2. Fetch Fresh Profile (Source of Truth)
+    // We use .select('onboarded') to minimize payload
+    const { data: profile, error: dbError } = await supabase
+        .from('users')
+        .select('onboarded')
+        .eq('id', user.id)
+        .single()
+
+    // 3. The Guard Logic
+    // If profile is missing (DB failed) or onboarded is false, send to onboarding
+    if (dbError || !profile || !profile.onboarded) {
+        console.log('AppLayout: User not onboarded, redirecting to /onboarding')
+        redirect('/onboarding')
+    }
+
     return (
         <div className="flex h-screen overflow-hidden bg-transparent">
             {/* Sidebar is fixed width, non-scrolling */}

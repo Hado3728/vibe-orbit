@@ -1,6 +1,12 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+/**
+ * Bulletproof Middleware
+ * Standardized session maintenance & basic route protection.
+ * Note: Database-level checks (like onboarding status) are handled in the AppLayout
+ * to avoid Edge-caching stale data and high-latency DB calls in the middleware.
+ */
 export async function middleware(request: NextRequest) {
     let supabaseResponse = NextResponse.next({
         request,
@@ -27,59 +33,39 @@ export async function middleware(request: NextRequest) {
         }
     )
 
-    // IMPORTANT: Use getUser() for fresh, secure server-side verification
+    // IMPORTANT: Use getUser() for secure session verification
     const { data: { user } } = await supabase.auth.getUser()
 
     const url = new URL(request.url)
     const { pathname } = url
 
-    // Step D: ALWAYS ignore internal paths and static assets
+    // 1. ALWAYS ignore internal paths and static assets
     if (
         pathname.startsWith('/_next') ||
         pathname.startsWith('/api') ||
         pathname.startsWith('/auth') ||
-        pathname.includes('.') // matches favicon, images, etc.
+        pathname.includes('.')
     ) {
         return supabaseResponse
     }
 
     // Path classification
-    const isOnOnboarding = pathname.startsWith('/onboarding') || pathname.startsWith('/quiz')
-    const isOnDashboard = pathname.startsWith('/dashboard') || pathname.startsWith('/profile') || pathname.startsWith('/admin')
-    const isOnLogin = pathname.startsWith('/login')
-    const isOnRoot = pathname === '/'
+    const isOnDashboard = pathname.startsWith('/dashboard') ||
+        pathname.startsWith('/profile') ||
+        pathname.startsWith('/admin') ||
+        pathname.startsWith('/rooms')
 
-    // Step 1: Session Persistence & Auto-Login
-    // If user is logged in and tries to hit /login or /, auto-redirect to dashboard
-    if (user && (isOnLogin || isOnRoot)) {
-        return NextResponse.redirect(new URL('/dashboard', request.url))
-    }
+    const isOnAuth = pathname.startsWith('/login') || pathname === '/'
 
-    // Step A: Protect App Routes
+    // 2. Protect App Routes (Session Check Only)
     if (isOnDashboard && !user) {
         return NextResponse.redirect(new URL('/login', request.url))
     }
 
-    // Step B & C: Handle Onboarding Progress
-    if (user) {
-        // Fetch fresh profile state
-        const { data: profile } = await supabase
-            .from('users')
-            .select('onboarded')
-            .eq('id', user.id)
-            .single()
-
-        const onboarded = profile?.onboarded || false
-
-        // If not onboarded and trying to access app, redirect to onboarding
-        if (isOnDashboard && !onboarded) {
-            return NextResponse.redirect(new URL('/onboarding', request.url))
-        }
-
-        // Step C: If onboarded and trying to access onboarding, redirect to dashboard
-        if (isOnOnboarding && onboarded) {
-            return NextResponse.redirect(new URL('/dashboard', request.url))
-        }
+    // 3. Auto-Login (Redirect to dashboard if session exists and hitting /, /login)
+    // Note: If they aren't onboarded, the AppLayout will catch them and send to /onboarding.
+    if (user && isOnAuth) {
+        return NextResponse.redirect(new URL('/dashboard', request.url))
     }
 
     return supabaseResponse
@@ -87,12 +73,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
     matcher: [
-        /*
-         * Match all request paths except for the ones starting with:
-         * - _next/static (static files)
-         * - _next/image (image optimization files)
-         * - favicon.ico (favicon file)
-         */
         '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
     ],
 }

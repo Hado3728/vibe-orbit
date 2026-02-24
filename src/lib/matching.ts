@@ -1,48 +1,60 @@
 import { createClient } from '@/lib/supabase/client'
 
-interface Room {
+// STRICT QUALITY CONTROL
+export const MINIMUM_MATCH_THRESHOLD = 65;
+
+export interface UserProfile {
     id: string
-    name: string
-    tags: string[]
+    username: string
+    age: number
+    interests: string[]
+    quiz_answers: number[]
 }
 
-// Simple scoring system:
-// +1 for every exact match in quiz answers (assuming we compare to room's "avg" or just a tag system? 
-// For now, let's use INTERESTS matching as the primary driver, and Vibe Score as secondary.
-// The user prompt said: "Searches the rooms table for rooms that share at least 3 interest tags."
+/**
+ * calculateMatch
+ * Enforces a strict threshold to prevent "desperate" matches.
+ * Uses quiz answers (on a scale of 0-3) to determine compatibility.
+ */
+export function calculateMatch(myAnswers: number[] | null, theirAnswers: number[] | null): number {
+    if (!myAnswers || !theirAnswers || myAnswers.length === 0 || theirAnswers.length === 0) {
+        return 0; // No data, no match
+    }
 
+    const length = Math.min(myAnswers.length, theirAnswers.length)
+    let totalDiff = 0
+
+    for (let i = 0; i < length; i++) {
+        totalDiff += Math.abs(myAnswers[i] - theirAnswers[i])
+    }
+
+    // Logic: 100 - (Total Diff * Multiplier)
+    // Assuming 8 questions, max diff of 3 per question (0-3 index) => max diff 24.
+    // 24 * 3 = 72. 100 - 72 = 28%.
+    const score = 100 - Math.round(totalDiff * 3.1)
+
+    // Enforce Threshold
+    const finalScore = Math.max(score, 0)
+    return finalScore >= MINIMUM_MATCH_THRESHOLD ? finalScore : 0;
+}
+
+/**
+ * findBestRoom
+ * Scoring for group rooms based on interest overlap.
+ */
 export async function findBestRoom(userId: string, userInterests: string[], userQuizAnswers: number[]) {
     const supabase = createClient()
 
-    // 1. Fetch all rooms
-    const { data: allRooms, error } = await supabase
+    // 1. Fetch available rooms
+    const { data: rooms, error } = await supabase
         .from('rooms')
-        .select('id, name, tags')
+        .select('*')
 
-    if (error || !allRooms) return null
-
-    // Filter for rooms with space (< 12 members)
-    const rooms: Room[] = []
-    for (const room of allRooms) {
-        const { count } = await supabase
-            .from('room_members')
-            .select('*', { count: 'exact', head: true })
-            .eq('room_id', room.id)
-
-        if (count !== null && count < 12) {
-            rooms.push(room)
-        }
-    }
-
-    if (rooms.length === 0) {
-        // Fallback to creation logic if no rooms available at all
-        return createFallbackRoom(userInterests, supabase)
-    }
+    if (error || !rooms) return null
 
     let bestRoom = null
     let maxScore = -1
 
-    // 2. Score each room
     for (const room of rooms) {
         let score = 0
 
@@ -50,11 +62,10 @@ export async function findBestRoom(userId: string, userInterests: string[], user
         const commonInterests = room.tags?.filter((tag: string) => userInterests.includes(tag)) || []
         score += commonInterests.length * 2
 
-        // If score is 0 (no shared interests), skip unless we are desperate
-        if (score === 0) continue
-
-        // Vibe Score (Placeholder)
-        score += Math.random()
+        // Category match (+5)
+        if (userInterests.includes(room.category)) {
+            score += 5
+        }
 
         if (score > maxScore) {
             maxScore = score
@@ -62,26 +73,8 @@ export async function findBestRoom(userId: string, userInterests: string[], user
         }
     }
 
-    // 3. Fallback: Create a new room if no good match
-    if (!bestRoom || maxScore < 2) { // Less than 1 shared interest
-        return createFallbackRoom(userInterests, supabase)
-    }
+    // Must have at least some overlap
+    if (!bestRoom || maxScore < 2) return null
 
     return bestRoom.id
-}
-
-async function createFallbackRoom(userInterests: string[], supabase: any) {
-    const topInterest = userInterests[0] || 'General'
-    const randomVibe = ['Chill', 'Late Night', 'Study', 'Vibes'][Math.floor(Math.random() * 4)]
-
-    const { data: newRoom } = await supabase
-        .from('rooms')
-        .insert({
-            name: `The ${topInterest.charAt(0).toUpperCase() + topInterest.slice(1)} ${randomVibe}`,
-            tags: userInterests.slice(0, 3) // Tag with user's top 3
-        })
-        .select()
-        .single()
-
-    return newRoom?.id
 }

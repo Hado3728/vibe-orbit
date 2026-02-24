@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/helpers'
 import { Button } from '@/components/ui/Button'
-import { LayoutDashboard, MessageSquare, User, Settings, Shield, Menu, UserPlus } from 'lucide-react'
+import { LayoutDashboard, MessageSquare, User, Settings, Shield, Menu, UserPlus, Users } from 'lucide-react'
 
 
 // Actually, for a scalable architecture, a Sheet (Drawer) is best. But I'll stick to a simple sidebar implementation that works on desktop and hidden on mobile with a toggle button that I will implement locally in the Layout for now or here.
@@ -12,7 +12,8 @@ import { LayoutDashboard, MessageSquare, User, Settings, Shield, Menu, UserPlus 
 
 const sidebarItems = [
     { icon: LayoutDashboard, label: 'Orbit', href: '/dashboard' },
-    { icon: MessageSquare, label: 'Chats', href: '/chat' }, // Placeholder href, likely needs logic
+    { icon: Users, label: 'Rooms', href: '/rooms' },
+    { icon: MessageSquare, label: 'Chats', href: '/chat' },
     { icon: UserPlus, label: 'Requests', href: '/requests' },
     { icon: User, label: 'Profile', href: '/profile' },
     { icon: Shield, label: 'Admin', href: '/admin' },

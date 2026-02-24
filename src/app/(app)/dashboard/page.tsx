@@ -11,14 +11,7 @@ import { motion } from 'framer-motion'
 import { Loader2, Sparkles, Orbit, MessageCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { LoadingVibe } from '@/components/ui/LoadingVibe'
-
-interface UserProfile {
-    id: string
-    username: string
-    age: number
-    interests: string[]
-    quiz_answers: number[]
-}
+import { calculateMatch, UserProfile } from '@/lib/matching'
 
 export default function DashboardPage() {
     const router = useRouter()
@@ -30,26 +23,6 @@ export default function DashboardPage() {
     const [requestingId, setRequestingId] = useState<string | null>(null)
     // Memoised so the reference is stable and doesn't retrigger useEffect
     const supabase = useMemo(() => createClient(), [])
-
-    // Helper: AI Match Logic
-    const calculateMatch = (myAnswers: number[] | null, theirAnswers: number[] | null) => {
-        if (!myAnswers || !theirAnswers || myAnswers.length === 0 || theirAnswers.length === 0) {
-            return Math.floor(Math.random() * (95 - 70) + 70) // Fallback for legacy users
-        }
-
-        const length = Math.min(myAnswers.length, theirAnswers.length)
-        let totalDiff = 0
-
-        for (let i = 0; i < length; i++) {
-            totalDiff += Math.abs(myAnswers[i] - theirAnswers[i])
-        }
-
-        // Logic: Lower diff is higher match. 
-        // Assuming max diff per q is ~4 (1-5 scale), 8 questions => max diff 32.
-        // Penalty factor 2.5 => 32 * 2.5 = 80. Min score 20%.
-        const score = 100 - Math.round(totalDiff * 2.5)
-        return Math.max(score, 10) // Min 10%
-    }
 
     // Helper: Insight Logic
     const getInsight = (myInterests: string[] | null, theirInterests: string[] | null) => {
@@ -102,13 +75,17 @@ export default function DashboardPage() {
 
                 if (error) throw error
 
-                // 4. Process & Sort
+                // 4. Process & Filter by Quality Threshold
                 if (otherUsers) {
-                    const processedUsers = otherUsers.map((u: UserProfile) => ({
-                        ...u,
-                        matchScore: calculateMatch(myProfile.quiz_answers, u.quiz_answers),
-                        sharedInterest: getInsight(myProfile.interests, u.interests)
-                    })).sort((a: any, b: any) => b.matchScore - a.matchScore)
+                    const processedUsers = otherUsers
+                        .map((u: UserProfile) => ({
+                            ...u,
+                            matchScore: calculateMatch(myProfile.quiz_answers, u.quiz_answers),
+                            sharedInterest: getInsight(myProfile.interests, u.interests)
+                        }))
+                        // Enforce the strict threshold (calculateMatch returns 0 if < 65)
+                        .filter((u: any) => u.matchScore > 0)
+                        .sort((a: any, b: any) => b.matchScore - a.matchScore)
 
                     setUsers(processedUsers)
                 }
@@ -131,7 +108,7 @@ export default function DashboardPage() {
         }
 
         fetchData()
-    }, [supabase])
+    }, [supabase, router])
 
     const handleSendRequest = async (receiverId: string) => {
         if (!currentUserId) return
@@ -174,7 +151,7 @@ export default function DashboardPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-100 via-white to-purple-100 p-8">
+        <div className="min-h-screen bg-transparent p-4 md:p-8">
             <div className="max-w-7xl mx-auto space-y-8">
                 {/* Header */}
                 <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -191,14 +168,24 @@ export default function DashboardPage() {
                 {loading ? (
                     <LoadingVibe />
                 ) : users.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-64 space-y-4 text-center">
-                        <div className="h-16 w-16 bg-gray-100 rounded-full flex items-center justify-center">
-                            <Orbit className="h-8 w-8 text-gray-400" />
+                    <div className="flex flex-col items-center justify-center h-96 space-y-6 text-center bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 shadow-xl">
+                        <div className="h-20 w-20 bg-indigo-500/10 rounded-full flex items-center justify-center animate-pulse">
+                            <Orbit className="h-10 w-10 text-indigo-500" />
                         </div>
-                        <h3 className="text-xl font-semibold text-gray-700">It's quiet in orbit right now...</h3>
-                        <p className="text-gray-500 max-w-sm">
-                            You might be the first explorer here! Check back later for more people.
-                        </p>
+                        <div className="space-y-2">
+                            <h3 className="text-2xl font-bold text-gray-800">Searching the cosmos... 🌌</h3>
+                            <p className="text-gray-500 max-w-sm mx-auto">
+                                No direct binary matches fit your energy profile right now.
+                                We only show matches above a 65% compatibility score to ensure high-quality vibes.
+                            </p>
+                        </div>
+                        <Button
+                            variant="outline"
+                            className="rounded-xl border-indigo-200 hover:bg-indigo-50"
+                            onClick={() => router.push('/rooms')}
+                        >
+                            Explore Vibe Rooms instead
+                        </Button>
                     </div>
                 ) : (
                     <motion.div
