@@ -43,10 +43,17 @@ export async function middleware(request: NextRequest) {
         return supabaseResponse
     }
 
-    // Guard against redundant redirects: If already on a target page, skip
+    // Path classification
     const isOnOnboarding = pathname.startsWith('/onboarding') || pathname.startsWith('/quiz')
     const isOnDashboard = pathname.startsWith('/dashboard') || pathname.startsWith('/profile') || pathname.startsWith('/admin')
     const isOnLogin = pathname.startsWith('/login')
+    const isOnRoot = pathname === '/'
+
+    // Step 1: Session Persistence & Auto-Login
+    // If user is logged in and tries to hit /login or /, auto-redirect to dashboard
+    if (user && (isOnLogin || isOnRoot)) {
+        return NextResponse.redirect(new URL('/dashboard', request.url))
+    }
 
     // Step A: Protect App Routes
     if (isOnDashboard && !user) {
@@ -69,8 +76,8 @@ export async function middleware(request: NextRequest) {
             return NextResponse.redirect(new URL('/onboarding', request.url))
         }
 
-        // Step C: If onboarded and trying to access onboarding/login, redirect to dashboard
-        if ((isOnOnboarding || isOnLogin) && onboarded) {
+        // Step C: If onboarded and trying to access onboarding, redirect to dashboard
+        if (isOnOnboarding && onboarded) {
             return NextResponse.redirect(new URL('/dashboard', request.url))
         }
     }

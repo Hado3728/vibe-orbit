@@ -122,7 +122,7 @@ export default function OnboardingPage() {
         try {
             const username = generateUsername()
 
-            // Call the Server Action
+            // Call the Server Action for atomic sync & redirect
             const result = await onboardUser({
                 username,
                 age: parseInt(age),
@@ -134,29 +134,13 @@ export default function OnboardingPage() {
                 throw new Error(result.error)
             }
 
-            // Note: Server action handles the redirect
+            // Note: Server action handles the redirect + cache revalidation
         } catch (e: any) {
             setError(e.message)
             setStep(3)
             setQuizAnswers([])
             setLoading(false)
         }
-    }
-
-    // Animation Variants
-    const slideVariants = {
-        enter: (direction: number) => ({
-            x: direction > 0 ? 1000 : -1000,
-            opacity: 0
-        }),
-        center: {
-            x: 0,
-            opacity: 1
-        },
-        exit: (direction: number) => ({
-            x: direction < 0 ? 1000 : -1000,
-            opacity: 0
-        })
     }
 
     return (

@@ -36,20 +36,20 @@ export async function onboardUser(formData: {
             age: formData.age,
             interests: formData.interests,
             quiz_answers: formData.quizAnswers,
-            onboarded: true, // This is what the Vibe Guard looks for
+            onboarded: true,
             created_at: new Date().toISOString()
         })
         if (dbError) throw dbError
 
-        // 4. Atomic Cache Revalidation
-        // This clears the "un-onboarded" state from the Server Component cache
-        revalidatePath('/', 'layout')
+        // 4. Atomic Cache Invalidation (The Quiz Loop Killer)
+        revalidatePath('/', 'layout'); // Clears the entire router cache
 
     } catch (error: any) {
+        if (error.message === 'NEXT_REDIRECT') throw error;
         console.error('Onboarding Error:', error)
         return { success: false, error: error.message }
     }
 
     // 5. Force Move to Dashboard
-    redirect('/dashboard')
+    redirect('/dashboard');
 }
