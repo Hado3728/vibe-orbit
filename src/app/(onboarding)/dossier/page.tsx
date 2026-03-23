@@ -6,14 +6,8 @@ import { createClient } from '@/lib/supabase/client'
 import { motion } from 'framer-motion'
 import { ArrowRight, Loader2 } from 'lucide-react'
 
-// Placeholder deep purple/cosmic gradients for avatars
-const AVATARS = [
-    { id: 'av_1', gradient: 'bg-gradient-to-tr from-purple-900 via-indigo-900 to-black' },
-    { id: 'av_2', gradient: 'bg-gradient-to-tr from-violet-900 via-purple-900 to-slate-900' },
-    { id: 'av_3', gradient: 'bg-gradient-to-bl from-fuchsia-900 via-purple-950 to-black' },
-    { id: 'av_4', gradient: 'bg-gradient-to-br from-indigo-950 via-slate-900 to-purple-900' },
-    { id: 'av_5', gradient: 'bg-gradient-to-t from-black via-purple-900 to-indigo-950' },
-]
+// Hardcoded seeds for the DiceBear Bottts-Neutral style
+const AVATAR_SEEDS = ["Orbit", "Vibe", "Cosmos", "Nova", "Pulse", "Zenith"]
 
 const ICEBREAKER_PROMPTS = [
     "The fastest way to my heart is...",
@@ -28,7 +22,7 @@ export default function DossierPage() {
     const supabase = createClient()
     
     // Form State
-    const [avatarId, setAvatarId] = useState<string>(AVATARS[0].id)
+    const [selectedSeed, setSelectedSeed] = useState<string>(AVATAR_SEEDS[0])
     const [icebreakerPrompt, setIcebreakerPrompt] = useState<string>(ICEBREAKER_PROMPTS[0])
     const [icebreakerAnswer, setIcebreakerAnswer] = useState<string>('')
     const [socialBattery, setSocialBattery] = useState<number>(50)
@@ -51,7 +45,7 @@ export default function DossierPage() {
             const { error: updateError } = await supabase
                 .from('users')
                 .update({
-                    avatar_id: avatarId,
+                    avatar_id: selectedSeed, // Storing the seed word as requested
                     icebreaker_prompt: icebreakerPrompt,
                     icebreaker_answer: icebreakerAnswer,
                     social_battery_level: socialBattery
@@ -60,10 +54,10 @@ export default function DossierPage() {
 
             if (updateError) throw updateError
 
-            // Optionally, also stash this in auth metadata so it's globally accessible via session
+            // Optionally, stash this in auth metadata so it's globally accessible via session
             await supabase.auth.updateUser({
                 data: {
-                    avatar_id: avatarId,
+                    avatar_id: selectedSeed,
                     icebreaker_prompt: icebreakerPrompt,
                     icebreaker_answer: icebreakerAnswer,
                     social_battery_level: socialBattery
@@ -88,7 +82,7 @@ export default function DossierPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, ease: "easeOut" }}
-                className="w-full max-w-xl bg-black/40 backdrop-blur-2xl border border-purple-900/30 rounded-[2rem] p-8 sm:p-10 shadow-2xl shadow-purple-900/10"
+                className="w-full max-w-xl bg-black/40 backdrop-blur-2xl border border-purple-900/40 rounded-[2rem] p-8 sm:p-10 shadow-2xl shadow-purple-900/10"
             >
                 <div className="text-center mb-10">
                     <h1 className="text-3xl font-extrabold text-slate-100 tracking-tight mb-2">Profile Dossier</h1>
@@ -97,27 +91,35 @@ export default function DossierPage() {
 
                 <form onSubmit={handleSubmit} className="space-y-10">
                     
-                    {/* Avatar Selector */}
-                    <div className="space-y-4">
+                    {/* "Reddit-Style" DiceBear Avatar Selector */}
+                    <div className="space-y-4 shadow-sm pb-1">
                         <label className="text-xs font-semibold text-purple-300 uppercase tracking-widest pl-1 opacity-80">
-                            Aesthetic Vector
+                            Select Avatar
                         </label>
-                        <div className="flex gap-5 overflow-x-auto pb-6 pt-2 px-1 scrollbar-hide snap-x">
-                            {AVATARS.map((av) => (
-                                <button
-                                    key={av.id}
-                                    type="button"
-                                    onClick={() => setAvatarId(av.id)}
-                                    aria-label={`Select placeholder avatar ${av.id}`}
-                                    className={`relative shrink-0 w-20 h-20 rounded-full cursor-pointer transition-all duration-300 snap-center
-                                        ${av.gradient}
-                                        ${avatarId === av.id 
-                                            ? 'ring-2 ring-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.4)] scale-110' 
-                                            : 'border border-purple-900/50 hover:border-purple-600/50 opacity-50 hover:opacity-100 scale-95 hover:scale-100'
-                                        }
-                                    `}
-                                />
-                            ))}
+                        <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 pt-2">
+                            {AVATAR_SEEDS.map((seed) => {
+                                const isSelected = selectedSeed === seed;
+                                return (
+                                    <button
+                                        key={seed}
+                                        type="button"
+                                        onClick={() => setSelectedSeed(seed)}
+                                        aria-label={`Select placeholder avatar ${seed}`}
+                                        className={`relative aspect-square flex items-center justify-center rounded-full transition-all duration-300 p-[10px] sm:p-2 
+                                            ${isSelected 
+                                                ? 'ring-2 ring-purple-500 bg-purple-900/20 shadow-[0_0_15px_rgba(168,85,247,0.3)] scale-110' 
+                                                : 'hover:bg-white/5 opacity-60 hover:opacity-100 scale-95 hover:scale-100'
+                                            }
+                                        `}
+                                    >
+                                        <img 
+                                            src={`https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${seed}&backgroundColor=transparent`} 
+                                            alt={`Avatar ${seed}`} 
+                                            className="w-full h-full object-contain drop-shadow-md pointer-events-none"
+                                        />
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
 
@@ -132,7 +134,7 @@ export default function DossierPage() {
                                 <select 
                                     value={icebreakerPrompt}
                                     onChange={(e) => setIcebreakerPrompt(e.target.value)}
-                                    className="w-full bg-purple-950/20 border border-purple-900/40 rounded-xl px-4 py-4 text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500/50 appearance-none transition-colors cursor-pointer"
+                                    className="w-full bg-purple-950/20 border border-purple-900/50 rounded-xl px-4 py-4 text-slate-200 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500/50 appearance-none transition-colors cursor-pointer"
                                 >
                                     {ICEBREAKER_PROMPTS.map(prompt => (
                                         <option key={prompt} value={prompt} className="bg-[#0a0a0a] text-slate-200">
@@ -153,7 +155,7 @@ export default function DossierPage() {
                                 placeholder="Write your response..."
                                 required
                                 maxLength={100}
-                                className="w-full bg-black/50 border border-purple-900/30 rounded-xl px-4 py-4 text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-purple-500/50 transition-colors text-sm"
+                                className="w-full bg-black/50 border border-purple-900/40 rounded-xl px-4 py-4 text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-purple-500/50 transition-colors text-sm"
                             />
                         </div>
                     </div>

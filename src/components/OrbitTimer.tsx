@@ -7,8 +7,10 @@ import { motion } from "framer-motion";
 export default function OrbitTimer({ lastOrbitDrop }: { lastOrbitDrop: string }) {
     const router = useRouter();
     const [timeLeft, setTimeLeft] = useState<{ hours: number; minutes: number; seconds: number } | null>(null);
+    const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
+        setMounted(true);
         const dropTime = new Date(lastOrbitDrop).getTime();
         const targetTime = dropTime + 48 * 60 * 60 * 1000;
 
@@ -36,7 +38,7 @@ export default function OrbitTimer({ lastOrbitDrop }: { lastOrbitDrop: string })
         return () => clearInterval(intervalId);
     }, [lastOrbitDrop, router]);
 
-    if (!timeLeft) return <div className="animate-pulse h-32 w-full max-w-sm mx-auto bg-slate-900/50 rounded-3xl border border-slate-800"></div>;
+    if (!mounted || !timeLeft) return <div className="animate-pulse h-32 w-full max-w-sm mx-auto bg-slate-900/50 rounded-3xl border border-slate-800"></div>;
 
     const pad = (num: number) => num.toString().padStart(2, "0");
 

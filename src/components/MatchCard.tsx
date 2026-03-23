@@ -6,9 +6,12 @@ interface MatchCardProps {
     sharedInterests: string[];
     bio: string;
     avatarUrl?: string;
+    onAction?: () => void;
+    actionText?: React.ReactNode;
+    isActionDisabled?: boolean;
 }
 
-export default function MatchCard({ name, matchScore, sharedInterests, bio, avatarUrl }: MatchCardProps) {
+export default function MatchCard({ name, matchScore, sharedInterests, bio, avatarUrl, onAction, actionText, isActionDisabled }: MatchCardProps) {
     return (
         <div className="group relative w-full overflow-hidden rounded-3xl bg-black/40 backdrop-blur-md border border-purple-900/50 p-6 sm:p-7 transition-all duration-500 hover:shadow-[0_0_15px_rgba(147,51,234,0.2)] hover:border-purple-800/60 flex flex-col h-full gap-6">
             
@@ -63,9 +66,13 @@ export default function MatchCard({ name, matchScore, sharedInterests, bio, avat
             </div>
 
             {/* Action Button */}
-            <button className="w-full mt-3 flex items-center justify-center gap-2 py-3.5 rounded-xl bg-purple-700 hover:bg-purple-600 text-purple-50 font-semibold transition-colors duration-300 z-10 focus:ring-2 focus:ring-purple-500/50 outline-none">
-                Initiate Orbit
-                <ArrowRight className="w-4 h-4 opacity-80 transition-transform group-hover:translate-x-1" />
+            <button 
+                onClick={onAction}
+                disabled={isActionDisabled}
+                className="w-full mt-3 flex items-center justify-center gap-2 py-3.5 rounded-xl bg-purple-700 hover:bg-purple-600 disabled:bg-purple-900/50 disabled:text-purple-300 disabled:cursor-not-allowed text-purple-50 font-semibold transition-colors duration-300 z-10 focus:ring-2 focus:ring-purple-500/50 outline-none"
+            >
+                {actionText || "Initiate Orbit"}
+                {!isActionDisabled && <ArrowRight className="w-4 h-4 opacity-80 transition-transform group-hover:translate-x-1" />}
             </button>
         </div>
     )

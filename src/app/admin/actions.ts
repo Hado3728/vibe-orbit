@@ -42,13 +42,17 @@ export async function openInvestigation(reportId: string, suspectId: string) {
 
     if (reportError) throw new Error('Failed to update report status')
 
-    // 3. Insert into admin_rooms: Link the admin, suspect, and report
+    // Fetch reporter_id from the report
+    const { data: report } = await supabase.from('reports').select('reporter_id').eq('id', reportId).single()
+
+    // 3. Insert into admin_rooms: Link the admin, suspect, and reporter
     const { data: room, error: roomError } = await supabase
         .from('admin_rooms')
         .insert({
             report_id: reportId,
             suspect_id: suspectId,
-            admin_id: user.id
+            admin_id: user.id,
+            reporter_id: report?.reporter_id
         })
         .select('id')
         .single()

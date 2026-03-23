@@ -14,16 +14,20 @@ import { LoadingVibe } from '@/components/ui/LoadingVibe'
 import { calculateMatch, UserProfile } from '@/lib/matching'
 import OrbitTimer from '@/components/OrbitTimer'
 import { triggerOrbitDrop } from './actions'
+import OrbitReveal, { cardRevealItem } from '@/components/OrbitReveal'
+import MatchCard from '@/components/MatchCard'
 
 export default function DashboardPage() {
     const router = useRouter()
-    const [users, setUsers] = useState<(UserProfile & { matchScore: number, sharedInterest?: string })[]>([])
+    const [users, setUsers] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [currentUsername, setCurrentUsername] = useState('')
     const [currentUserId, setCurrentUserId] = useState('')
     const [sentRequests, setSentRequests] = useState<string[]>([])
     const [requestingId, setRequestingId] = useState<string | null>(null)
     const [nextDropTime, setNextDropTime] = useState<string | null>(null)
+    const [isNewDrop, setIsNewDrop] = useState(false)
+    
     // Memoised so the reference is stable and doesn't retrigger useEffect
     const supabase = useMemo(() => createClient(), [])
 
@@ -32,7 +36,6 @@ export default function DashboardPage() {
         if (!myInterests || !theirInterests) return "Similiar vibes ✨"
         const common = theirInterests.filter(i => myInterests.includes(i))
         if (common.length > 0) {
-            // Pick random common interest
             const random = common[Math.floor(Math.random() * common.length)]
             return `AI Insight: You both love ${random}!`
         }
@@ -45,14 +48,13 @@ export default function DashboardPage() {
                 // 1. Get Current User Auth
                 const { data: { user }, error: authError } = await supabase.auth.getUser()
                 if (authError || !user) {
-                    // No valid session — bounce to login cleanly instead of crashing
                     router.replace('/login')
                     return
                 }
 
                 setCurrentUserId(user.id)
 
-                // 2. Fetch Current User Profile (for Quiz/Interests)
+                // 2. Fetch Current User Profile 
                 const { data: myProfile, error: myError } = await supabase
                     .from('users')
                     .select('username, interests, quiz_answers, last_orbit_drop')
@@ -61,7 +63,6 @@ export default function DashboardPage() {
 
                 if (myError) {
                     if (myError.code === 'PGRST116') {
-                        // User exists in Auth but not in our public.users table yet
                         router.replace('/onboarding')
                         return
                     }
@@ -76,36 +77,35 @@ export default function DashboardPage() {
                 const hoursSinceDrop = (now - lastDrop) / (1000 * 60 * 60);
 
                 if (hoursSinceDrop >= 48) {
-                    // Update the drop time on the server
                     await triggerOrbitDrop()
                     setNextDropTime(null)
-
-                    // 3. Fetch Other Users
-                    const { data: otherUsers, error } = await supabase
-                        .from('users')
-                        .select('id, username, age, interests, quiz_answers')
-                        .neq('id', user.id)
-                        .limit(20)
-
-                    if (error) throw error
-
-                    // 4. Process & Filter by Quality Threshold
-                    if (otherUsers) {
-                        const processedUsers = otherUsers
-                            .map((u: UserProfile) => ({
-                                ...u,
-                                matchScore: calculateMatch(myProfile.quiz_answers, u.quiz_answers),
-                                sharedInterest: getInsight(myProfile.interests, u.interests)
-                            }))
-                            // Enforce the strict threshold (calculateMatch returns 0 if < 65)
-                            .filter((u: any) => u.matchScore > 0)
-                            .sort((a: any, b: any) => b.matchScore - a.matchScore)
-
-                        setUsers(processedUsers)
-                    }
+                    setIsNewDrop(true)
                 } else {
-                    // Less than 48 hours. Set the timer and hide new match potentials!
                     setNextDropTime(lastDropStr)
+                    setIsNewDrop(false)
+                }
+
+                // 3. ALWAYS Fetch Users (Existing matches if <48, fresh drop if >=48)
+                const { data: otherUsers, error } = await supabase
+                    .from('users')
+                    .select('id, username, age, interests, quiz_answers, avatar_id, icebreaker_answer')
+                    .neq('id', user.id)
+                    .limit(20)
+
+                if (error) throw error
+
+                // 4. Process & Filter by Quality Threshold
+                if (otherUsers) {
+                    const processedUsers = otherUsers
+                        .map((u: any) => ({
+                            ...u,
+                            matchScore: calculateMatch(myProfile.quiz_answers, u.quiz_answers),
+                            sharedInterest: getInsight(myProfile.interests, u.interests)
+                        }))
+                        .filter((u: any) => u.matchScore > 0)
+                        .sort((a: any, b: any) => b.matchScore - a.matchScore)
+
+                    setUsers(processedUsers)
                 }
 
                 // 5. Fetch existing requests
@@ -191,118 +191,55 @@ export default function DashboardPage() {
                 
                 {loading ? (
                     <LoadingVibe />
-                ) : nextDropTime && users.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-64 text-center mt-8 space-y-4">
-                        <Orbit className="h-12 w-12 text-slate-400 animate-spin" />
-                        <h3 className="text-xl font-bold text-gray-500">Anticipate the influx. No matches to display right now.</h3>
-                    </div>
                 ) : users.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-96 space-y-6 text-center bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 shadow-xl">
-                        <div className="h-20 w-20 bg-indigo-500/10 rounded-full flex items-center justify-center animate-pulse">
-                            <Orbit className="h-10 w-10 text-indigo-500" />
+                    <div className="flex flex-col items-center justify-center p-12 text-center bg-black/40 backdrop-blur-md rounded-[2rem] border border-purple-900/30 shadow-xl mt-8">
+                        <div className="h-20 w-20 bg-purple-900/20 rounded-full flex items-center justify-center animate-pulse mb-6">
+                            <Orbit className="h-10 w-10 text-purple-500" />
                         </div>
-                        <div className="space-y-2">
-                            <h3 className="text-2xl font-bold text-gray-800">Searching the cosmos... 🌌</h3>
-                            <p className="text-gray-500 max-w-sm mx-auto">
-                                No direct binary matches fit your energy profile right now.
-                                We only show matches above a 65% compatibility score to ensure high-quality vibes.
-                            </p>
-                        </div>
+                        <h3 className="text-2xl font-bold text-slate-200 mb-2">Searching the cosmos... 🌌</h3>
+                        <p className="text-slate-500 max-w-sm mx-auto mb-6">
+                            No active alignments fit your energy profile. 
+                            Wait for the next drop or explore global lounges.
+                        </p>
                         <Button
-                            variant="outline"
-                            className="rounded-xl border-indigo-200 hover:bg-indigo-50"
-                            onClick={() => router.push('/rooms')}
+                            className="rounded-xl bg-purple-700 hover:bg-purple-600 text-purple-50 border-0"
+                            onClick={() => router.push('/dashboard/lounges')}
                         >
-                            Explore Vibe Rooms instead
+                            Explore Lounges
                         </Button>
                     </div>
                 ) : (
-                    <motion.div
-                        variants={container}
-                        initial="hidden"
-                        animate="show"
-                        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-                    >
+                    <OrbitReveal isNewDrop={isNewDrop}>
                         {users.map((user) => {
                             const isRequested = sentRequests.includes(user.id)
                             const isRequesting = requestingId === user.id
 
+                            const btnContent = isRequested ? (
+                                <><Sparkles className="w-4 h-4 mr-1" /> Request Sent</>
+                            ) : isRequesting ? (
+                                <><Loader2 className="w-4 h-4 mr-1 animate-spin" /> Transmitting...</>
+                            ) : undefined;
+
+                            const avatarUrl = user.avatar_id 
+                                ? `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${user.avatar_id}&backgroundColor=transparent`
+                                : undefined;
+
                             return (
-                                <motion.div key={user.id} variants={item}>
-                                    <Card className="h-full bg-white/40 backdrop-blur-xl border-white/50 shadow-sm hover:shadow-md transition-all duration-300 group overflow-hidden flex flex-col relative">
-                                        {/* Match Badge */}
-                                        <div className="absolute top-4 right-4 z-10">
-                                            <div className="bg-indigo-500/10 backdrop-blur-md border border-indigo-500/20 text-indigo-700 font-bold px-3 py-1 rounded-full text-xs flex items-center gap-1 shadow-sm">
-                                                <Sparkles className="w-3 h-3 text-indigo-500" />
-                                                {user.matchScore}% Match
-                                            </div>
-                                        </div>
-
-                                        <CardHeader className="pb-3 pt-6">
-                                            <div className="flex justify-between items-start">
-                                                <div>
-                                                    <CardTitle className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                                                        {user.username}
-                                                        <span className="text-xs font-normal px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100">
-                                                            {user.age}
-                                                        </span>
-                                                    </CardTitle>
-                                                </div>
-                                            </div>
-                                        </CardHeader>
-                                        <CardContent className="space-y-4 flex flex-col flex-grow">
-                                            <div className="flex flex-wrap gap-2">
-                                                {user.interests?.slice(0, 5).map((interest, i) => (
-                                                    <span
-                                                        key={i}
-                                                        className="px-3 py-1 rounded-full text-xs font-medium bg-indigo-50 text-indigo-600 border border-indigo-100"
-                                                    >
-                                                        {interest}
-                                                    </span>
-                                                ))}
-                                            </div>
-
-                                            {/* AI Insight */}
-                                            <div className="bg-purple-50/50 border border-purple-100 rounded-lg p-3 text-xs text-purple-800 italic flex items-start gap-2">
-                                                <Sparkles className="w-3 h-3 mt-0.5 flex-shrink-0" />
-                                                {user.sharedInterest}
-                                            </div>
-
-                                            <div className="mt-auto pt-2">
-                                                <Button
-                                                    className={cn(
-                                                        "w-full transition-all border shadow-sm",
-                                                        isRequested
-                                                            ? "bg-green-500 hover:bg-green-600 text-white border-green-600"
-                                                            : "bg-white hover:bg-indigo-50 text-indigo-700 border-indigo-200 group-hover:border-indigo-300"
-                                                    )}
-                                                    onClick={() => handleSendRequest(user.id)}
-                                                    disabled={isRequested || isRequesting}
-                                                >
-                                                    {isRequested ? (
-                                                        <>
-                                                            <Sparkles className="w-4 h-4 mr-2" />
-                                                            Request Sent 🚀
-                                                        </>
-                                                    ) : isRequesting ? (
-                                                        <>
-                                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                                            Sending...
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <MessageCircle className="w-4 h-4 mr-2" />
-                                                            Send Chat Request
-                                                        </>
-                                                    )}
-                                                </Button>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
+                                <motion.div key={user.id} variants={cardRevealItem}>
+                                    <MatchCard
+                                        name={user.username || "Traveler"}
+                                        matchScore={user.matchScore}
+                                        sharedInterests={user.interests?.slice(0, 3) || []}
+                                        bio={user.icebreaker_answer || user.sharedInterest || "Compatible energy patterns detected."}
+                                        avatarUrl={avatarUrl}
+                                        onAction={() => handleSendRequest(user.id)}
+                                        isActionDisabled={isRequested || isRequesting}
+                                        actionText={btnContent}
+                                    />
                                 </motion.div>
                             )
                         })}
-                    </motion.div>
+                    </OrbitReveal>
                 )}
             </div>
         </div>

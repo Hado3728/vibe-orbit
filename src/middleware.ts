@@ -64,7 +64,8 @@ export async function middleware(request: NextRequest) {
 
     const isAuthPath = pathname === '/login' || pathname === '/'
 
-    // --- STRIPPED ROUTING LOGIC ---
+    // C. Middleware routing enforcing
+    const hasOnboarded = request.cookies.get('has_onboarded')?.value;
 
     // A. Unauthorized access -> Login
     if (isAppPath && !user) {
@@ -75,8 +76,23 @@ export async function middleware(request: NextRequest) {
     if (user && isAuthPath) {
         return NextResponse.redirect(new URL('/dashboard', request.url))
     }
+    
+    // C. Enforce Onboarding Constraints
+    if (user) {
+        const isOnboardingRoute = pathname.startsWith('/onboarding') || pathname.startsWith('/quiz') || pathname.startsWith('/dossier');
+        
+        if (hasOnboarded === 'true' && isOnboardingRoute) {
+            // Already onboarded -> Lock out of onboarding, force to Dashboard
+            return NextResponse.redirect(new URL('/dashboard', request.url))
+        }
+        
+        if (hasOnboarded !== 'true' && isAppPath && !isOnboardingRoute && !pathname.startsWith('/admin')) {
+            // Not onboarded -> Force into onboarding
+            return NextResponse.redirect(new URL('/onboarding', request.url))
+        }
+    }
 
-    // C. Everything else (Onboarding, Quiz, Layouts) is handled by the respective pages/layouts
+    // D. Everything else returns default
     return supabaseResponse
 }
 
