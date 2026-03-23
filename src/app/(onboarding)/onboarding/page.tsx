@@ -134,11 +134,12 @@ export default function OnboardingPage() {
                 throw new Error(result.error)
             }
 
-            // Note: Server action handles the redirect + cache revalidation
+            // Client-side clean navigation
+            router.push('/dossier')
         } catch (e: any) {
+            console.error("Quiz submission error:", e)
             setError(e.message)
             setStep(3)
-            setQuizAnswers([])
             setLoading(false)
         }
     }

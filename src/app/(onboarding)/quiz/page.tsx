@@ -106,16 +106,12 @@ export default function QuizPage() {
                     user_id: user.id
                 })
 
-                // Slight delay for effect
                 setTimeout(() => {
                     router.push(`/rooms/${roomId}`)
                 }, 2000)
             } else {
-                // onboardUser server action will have redirected to /dashboard if we didn't have a roomId
-                // but since we might have a roomId, we manually push here if the redirect didn't happen yet.
-                // However, redirect() in server action throws, so this code might not run.
-                // It's safer to handle the redirect logic cleanly.
-                console.log("Onboarded, no room found, let server action redirect handle it.")
+                // Clean routing to Dossier since no room was found
+                router.push('/dossier')
             }
 
         } catch (e) {

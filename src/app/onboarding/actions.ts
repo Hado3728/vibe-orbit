@@ -56,11 +56,11 @@ export async function onboardUser(formData: {
         revalidatePath('/', 'layout')
 
     } catch (error: any) {
-        if (error.message === 'NEXT_REDIRECT') throw error;
         console.error('ONBOARDING ERROR:', error)
         return { success: false, error: error.message }
     }
 
-    // 5. Clean Redirect into Final Onboarding Step
-    redirect('/dossier')
+    // Return success instead of redirecting purely server-side
+    // Allows the client component to route cleanly without NEXT_REDIRECT catch-block loops.
+    return { success: true }
 }
