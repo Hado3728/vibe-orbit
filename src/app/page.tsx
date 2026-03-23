@@ -238,31 +238,38 @@ export default function LandingPage() {
 
                 {/* ── SECTION 1: HERO ─────────────────────────────────────── */}
                 <section className="relative min-h-screen flex flex-col items-center justify-center text-center px-4 pt-24 pb-20">
-                    <div className={`inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-semibold mb-10 backdrop-blur-sm ${isDark ? "bg-indigo-950/70 border border-indigo-500/30 text-indigo-300" : "bg-indigo-50/80 border border-indigo-300/50 text-indigo-600"}`}>
-                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
-                        Now live — find your signal
+                    <div className={`mb-10 inline-flex items-center gap-2 px-4 py-1.5 rounded-full backdrop-blur-md border ${isDark ? "bg-purple-900/30 border-purple-500/30" : "bg-purple-100 border-purple-300"}`}>
+                        <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-purple-500"></span>
+                        </span>
+                        <span className={`text-xs font-bold uppercase tracking-widest ${isDark ? "text-purple-300" : "text-purple-600"}`}>
+                            Exclusively for Teens
+                        </span>
                     </div>
+
                     <h1 className="text-5xl sm:text-7xl lg:text-8xl font-black tracking-tighter leading-[1] mb-6 max-w-5xl py-2">
                         <span
-                            className="block pb-2 sm:pb-4 bg-clip-text text-transparent bg-gradient-to-r from-pink-500 via-purple-500 to-blue-600"
-                            style={{ filter: `drop-shadow(0 0 30px rgba(236,72,153,${isDark ? "0.7" : "0.4"})) drop-shadow(0 0 60px rgba(139,92,246,${isDark ? "0.5" : "0.3"})) drop-shadow(0 0 100px rgba(99,102,241,${isDark ? "0.3" : "0.15"}))` }}
+                            className="block pb-2 sm:pb-4"
                         >
-                            Sync Your Vibe.
+                            Stop swiping.
                         </span>
-                        <span className="block pb-2 bg-gradient-to-r from-indigo-400 via-violet-400 to-fuchsia-400 bg-clip-text text-transparent" style={{ filter: `drop-shadow(0 0 60px rgba(139,92,246,${isDark ? "0.5" : "0.35"}))` }}>
-                            Find Your Orbit.
+                        <span className="block pb-2 bg-gradient-to-r from-purple-400 to-purple-600 bg-clip-text text-transparent" style={{ filter: `drop-shadow(0 0 60px rgba(139,92,246,${isDark ? "0.5" : "0.35"}))` }}>
+                            Start vibrating.
                         </span>
                     </h1>
+                    
                     <p className={`text-lg md:text-xl max-w-2xl leading-relaxed mb-12 ${subText}`}>
-                        The social discovery engine that matches you based on energy, not just aesthetics. Find your people in a universe of noise.
+                        The anti-swipe social space. No mindless scrolling, no superficial selfies. Just raw personality matching and 48-hour Orbit drops.
                     </p>
+                    
                     <Link href="/login">
                         <button className="group relative px-10 py-4 rounded-2xl font-bold text-lg text-white overflow-hidden transition-all duration-300 hover:scale-105 active:scale-95">
-                            <span className="absolute -inset-2 bg-indigo-500/25 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                            <span className="absolute inset-0 bg-gradient-to-r from-indigo-600 via-violet-600 to-purple-600 opacity-95 group-hover:opacity-100" />
+                            <span className="absolute -inset-2 bg-purple-500/25 rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                            <span className="absolute inset-0 bg-gradient-to-r from-purple-600 via-fuchsia-600 to-indigo-600 opacity-95 group-hover:opacity-100" />
                             <span className="absolute inset-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.18)]" />
                             <span className="relative flex items-center gap-2.5">
-                                Enter the Orbit
+                                Join the Orbit
                                 <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
                             </span>
                         </button>

@@ -2,9 +2,9 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 import { motion } from 'framer-motion'
 import { ArrowRight, Loader2 } from 'lucide-react'
+import { submitDossier } from '@/app/onboarding/actions'
 
 // Hardcoded seeds for the DiceBear Bottts-Neutral style
 const AVATAR_SEEDS = ["Orbit", "Vibe", "Cosmos", "Nova", "Pulse", "Zenith"]
@@ -19,7 +19,7 @@ const ICEBREAKER_PROMPTS = [
 
 export default function DossierPage() {
     const router = useRouter()
-    const supabase = createClient()
+    // Removed unstable client-side createClient
     
     // Form State
     const [selectedSeed, setSelectedSeed] = useState<string>(AVATAR_SEEDS[0])
@@ -37,36 +37,15 @@ export default function DossierPage() {
         setError(null)
 
         try {
-            const { data: { user } } = await supabase.auth.getUser()
-            
-            if (!user) throw new Error('Not authenticated')
-
-            // Update custom profile fields in the public.users table
-            const { error: updateError } = await supabase
-                .from('users')
-                .update({
-                    avatar_id: selectedSeed, // Storing the seed word as requested
-                    icebreaker_prompt: icebreakerPrompt,
-                    icebreaker_answer: icebreakerAnswer,
-                    social_battery_level: socialBattery
-                })
-                .eq('id', user.id)
-
-            if (updateError) throw updateError
-
-            // Optionally, stash this in auth metadata so it's globally accessible via session
-            await supabase.auth.updateUser({
-                data: {
-                    avatar_id: selectedSeed,
-                    icebreaker_prompt: icebreakerPrompt,
-                    icebreaker_answer: icebreakerAnswer,
-                    social_battery_level: socialBattery
-                }
+            const result = await submitDossier({
+                avatarId: selectedSeed,
+                icebreakerPrompt: icebreakerPrompt,
+                icebreakerAnswer: icebreakerAnswer,
+                socialBattery: socialBattery
             })
-            
-            // Sync session cookies
-            await supabase.auth.refreshSession()
-            
+
+            if (!result.success) throw new Error(result.error)
+
             // Bypass Middleware Routing Lock natively
             document.cookie = "has_onboarded=true; path=/; max-age=31536000; SameSite=Lax";
 

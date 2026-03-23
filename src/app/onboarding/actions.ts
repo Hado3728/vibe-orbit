@@ -64,3 +64,50 @@ export async function onboardUser(formData: {
     // Allows the client component to route cleanly without NEXT_REDIRECT catch-block loops.
     return { success: true }
 }
+
+/**
+ * submitDossier
+ * Handles final avatar and personality data insertion.
+ */
+export async function submitDossier(formData: {
+    avatarId: string
+    icebreakerPrompt: string
+    icebreakerAnswer: string
+    socialBattery: number
+}) {
+    const supabase = await createClient()
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    
+    if (userError || !user) {
+        return { success: false, error: 'Not authenticated. Session context lost.' }
+    }
+
+    try {
+        const { error: updateError } = await supabase
+            .from('users')
+            .update({
+                avatar_id: formData.avatarId,
+                icebreaker_prompt: formData.icebreakerPrompt,
+                icebreaker_answer: formData.icebreakerAnswer,
+                social_battery_level: formData.socialBattery
+            })
+            .eq('id', user.id)
+
+        if (updateError) throw new Error(`Database Update Failed: ${updateError.message}`)
+
+        await supabase.auth.updateUser({
+            data: {
+                avatar_id: formData.avatarId,
+                icebreaker_prompt: formData.icebreakerPrompt,
+                icebreaker_answer: formData.icebreakerAnswer,
+                social_battery_level: formData.socialBattery
+            }
+        })
+        
+        await supabase.auth.refreshSession()
+        return { success: true }
+    } catch (e: any) {
+        console.error('DOSSIER ERROR:', e)
+        return { success: false, error: e.message }
+    }
+}
