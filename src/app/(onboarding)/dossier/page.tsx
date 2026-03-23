@@ -66,6 +66,9 @@ export default function DossierPage() {
             
             // Sync session cookies
             await supabase.auth.refreshSession()
+            
+            // Bypass Middleware Routing Lock natively
+            document.cookie = "has_onboarded=true; path=/; max-age=31536000; SameSite=Lax";
 
             // CRITICAL: Push to dashboard upon success
             router.push('/dashboard')

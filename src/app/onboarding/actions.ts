@@ -61,6 +61,6 @@ export async function onboardUser(formData: {
         return { success: false, error: error.message }
     }
 
-    // 5. Clean Redirect
-    redirect('/dashboard')
+    // 5. Clean Redirect into Final Onboarding Step
+    redirect('/dossier')
 }
