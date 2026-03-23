@@ -37,7 +37,7 @@ export default function LoginPage() {
         const supabase = createClient();
         const { error } = await supabase.auth.signInWithOtp({
             email,
-            options: { emailRedirectTo: "https://vibe-orbit-production.up.railway.app/auth/callback" },
+            options: { emailRedirectTo: `${location.origin}/auth/callback` },
         });
         setMessage(error ? error.message : "Magic link sent! Check your email.");
         setLoading(false);
@@ -57,7 +57,7 @@ export default function LoginPage() {
         await supabase.auth.signInWithOAuth({
             provider: "google",
             options: {
-                redirectTo: "https://vibe-orbit-production.up.railway.app/auth/callback",
+                redirectTo: `${location.origin}/auth/callback`,
                 queryParams: {
                     access_type: "offline",
                     prompt: "consent",
