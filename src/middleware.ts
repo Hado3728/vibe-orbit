@@ -59,6 +59,7 @@ export async function middleware(request: NextRequest) {
         pathname.startsWith('/age') ||
         pathname.startsWith('/interests') ||
         pathname.startsWith('/onboarding') ||
+        pathname.startsWith('/dossier') ||
         pathname.startsWith('/quiz')
 
     const isAuthPath = pathname === '/login' || pathname === '/'

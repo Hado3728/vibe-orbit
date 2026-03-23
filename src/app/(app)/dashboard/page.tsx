@@ -12,6 +12,8 @@ import { Loader2, Sparkles, Orbit, MessageCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { LoadingVibe } from '@/components/ui/LoadingVibe'
 import { calculateMatch, UserProfile } from '@/lib/matching'
+import OrbitTimer from '@/components/OrbitTimer'
+import { triggerOrbitDrop } from './actions'
 
 export default function DashboardPage() {
     const router = useRouter()
@@ -21,6 +23,7 @@ export default function DashboardPage() {
     const [currentUserId, setCurrentUserId] = useState('')
     const [sentRequests, setSentRequests] = useState<string[]>([])
     const [requestingId, setRequestingId] = useState<string | null>(null)
+    const [nextDropTime, setNextDropTime] = useState<string | null>(null)
     // Memoised so the reference is stable and doesn't retrigger useEffect
     const supabase = useMemo(() => createClient(), [])
 
@@ -52,7 +55,7 @@ export default function DashboardPage() {
                 // 2. Fetch Current User Profile (for Quiz/Interests)
                 const { data: myProfile, error: myError } = await supabase
                     .from('users')
-                    .select('username, interests, quiz_answers')
+                    .select('username, interests, quiz_answers, last_orbit_drop')
                     .eq('id', user.id)
                     .single()
 
@@ -66,28 +69,43 @@ export default function DashboardPage() {
                 }
                 setCurrentUsername(myProfile.username || 'Traveler')
 
-                // 3. Fetch Other Users
-                const { data: otherUsers, error } = await supabase
-                    .from('users')
-                    .select('id, username, age, interests, quiz_answers')
-                    .neq('id', user.id)
-                    .limit(20)
+                // The 48-Hour Orbit Drop Logic Check
+                const now = new Date().getTime();
+                const lastDropStr = myProfile.last_orbit_drop;
+                const lastDrop = lastDropStr ? new Date(lastDropStr).getTime() : 0;
+                const hoursSinceDrop = (now - lastDrop) / (1000 * 60 * 60);
 
-                if (error) throw error
+                if (hoursSinceDrop >= 48) {
+                    // Update the drop time on the server
+                    await triggerOrbitDrop()
+                    setNextDropTime(null)
 
-                // 4. Process & Filter by Quality Threshold
-                if (otherUsers) {
-                    const processedUsers = otherUsers
-                        .map((u: UserProfile) => ({
-                            ...u,
-                            matchScore: calculateMatch(myProfile.quiz_answers, u.quiz_answers),
-                            sharedInterest: getInsight(myProfile.interests, u.interests)
-                        }))
-                        // Enforce the strict threshold (calculateMatch returns 0 if < 65)
-                        .filter((u: any) => u.matchScore > 0)
-                        .sort((a: any, b: any) => b.matchScore - a.matchScore)
+                    // 3. Fetch Other Users
+                    const { data: otherUsers, error } = await supabase
+                        .from('users')
+                        .select('id, username, age, interests, quiz_answers')
+                        .neq('id', user.id)
+                        .limit(20)
 
-                    setUsers(processedUsers)
+                    if (error) throw error
+
+                    // 4. Process & Filter by Quality Threshold
+                    if (otherUsers) {
+                        const processedUsers = otherUsers
+                            .map((u: UserProfile) => ({
+                                ...u,
+                                matchScore: calculateMatch(myProfile.quiz_answers, u.quiz_answers),
+                                sharedInterest: getInsight(myProfile.interests, u.interests)
+                            }))
+                            // Enforce the strict threshold (calculateMatch returns 0 if < 65)
+                            .filter((u: any) => u.matchScore > 0)
+                            .sort((a: any, b: any) => b.matchScore - a.matchScore)
+
+                        setUsers(processedUsers)
+                    }
+                } else {
+                    // Less than 48 hours. Set the timer and hide new match potentials!
+                    setNextDropTime(lastDropStr)
                 }
 
                 // 5. Fetch existing requests
@@ -165,8 +183,19 @@ export default function DashboardPage() {
 
 
                 {/* Content */}
+                {nextDropTime && (
+                    <div className="mb-12">
+                        <OrbitTimer lastOrbitDrop={nextDropTime} />
+                    </div>
+                )}
+                
                 {loading ? (
                     <LoadingVibe />
+                ) : nextDropTime && users.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-64 text-center mt-8 space-y-4">
+                        <Orbit className="h-12 w-12 text-slate-400 animate-spin" />
+                        <h3 className="text-xl font-bold text-gray-500">Anticipate the influx. No matches to display right now.</h3>
+                    </div>
                 ) : users.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-96 space-y-6 text-center bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 shadow-xl">
                         <div className="h-20 w-20 bg-indigo-500/10 rounded-full flex items-center justify-center animate-pulse">

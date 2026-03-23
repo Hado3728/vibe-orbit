@@ -4,9 +4,11 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function CookieBanner() {
+    const [mounted, setMounted] = useState(false);
     const [showBanner, setShowBanner] = useState(false);
 
     useEffect(() => {
+        setMounted(true);
         // Wait for hydration to finish before checking localStorage
         const consent = localStorage.getItem("vibe_orbit_cookie_consent");
         if (!consent) {
@@ -19,6 +21,8 @@ export default function CookieBanner() {
         setShowBanner(false);
         // Optional: Trigger your exact GDPR scripts or disable analytics here based on 'accepted'
     };
+
+    if (!mounted) return null;
 
     return (
         <AnimatePresence>
