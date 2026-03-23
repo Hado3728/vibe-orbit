@@ -8,6 +8,7 @@ export const dynamic = 'force-dynamic';
 const inter = Inter({ subsets: ['latin'] })
 
 import { ThemeProvider } from '@/components/ThemeProvider'
+import CookieBanner from '@/components/CookieBanner'
 
 export const metadata: Metadata = {
   title: 'Orbit',
@@ -32,6 +33,7 @@ export default function RootLayout({
             <OrbBackground />
           </div>
           {children}
+          <CookieBanner />
         </ThemeProvider>
       </body>
     </html>
