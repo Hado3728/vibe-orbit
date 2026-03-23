@@ -242,14 +242,14 @@ export default function LandingPage() {
                         <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
                         Now live — find your signal
                     </div>
-                    <h1 className="text-5xl sm:text-7xl lg:text-8xl font-black tracking-tighter leading-[0.95] mb-6 max-w-5xl">
+                    <h1 className="text-5xl sm:text-7xl lg:text-8xl font-black tracking-tighter leading-[1] mb-6 max-w-5xl py-2">
                         <span
-                            className="block bg-clip-text text-transparent bg-gradient-to-r from-pink-500 via-purple-500 to-blue-600"
+                            className="block pb-2 sm:pb-4 bg-clip-text text-transparent bg-gradient-to-r from-pink-500 via-purple-500 to-blue-600"
                             style={{ filter: `drop-shadow(0 0 30px rgba(236,72,153,${isDark ? "0.7" : "0.4"})) drop-shadow(0 0 60px rgba(139,92,246,${isDark ? "0.5" : "0.3"})) drop-shadow(0 0 100px rgba(99,102,241,${isDark ? "0.3" : "0.15"}))` }}
                         >
                             Sync Your Vibe.
                         </span>
-                        <span className="block mt-2 bg-gradient-to-r from-indigo-400 via-violet-400 to-fuchsia-400 bg-clip-text text-transparent" style={{ filter: `drop-shadow(0 0 60px rgba(139,92,246,${isDark ? "0.5" : "0.35"}))` }}>
+                        <span className="block pb-2 bg-gradient-to-r from-indigo-400 via-violet-400 to-fuchsia-400 bg-clip-text text-transparent" style={{ filter: `drop-shadow(0 0 60px rgba(139,92,246,${isDark ? "0.5" : "0.35"}))` }}>
                             Find Your Orbit.
                         </span>
                     </h1>
