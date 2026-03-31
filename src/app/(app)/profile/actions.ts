@@ -4,7 +4,6 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 
 export async function updateProfile(formData: {
-    username: string
     bio: string
     interests: string[]
 }) {
@@ -19,7 +18,6 @@ export async function updateProfile(formData: {
         const { error } = await supabase
             .from('users')
             .update({
-                username: formData.username,
                 bio: formData.bio,
                 interests: formData.interests,
             })

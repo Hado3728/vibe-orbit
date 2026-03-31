@@ -24,7 +24,7 @@ export const Sidebar = ({ className }: { className?: string }) => {
 
     return (
         <div className={cn(
-            "pb-12 w-64 border-r border-white/20 dark:border-white/10 h-full bg-white/30 dark:bg-black/30 backdrop-blur-xl hidden md:block transition-all",
+            "pb-12 w-64 border-r border-slate-200 dark:border-slate-800 h-full bg-slate-50 dark:bg-slate-950 hidden md:block transition-all",
             className
         )}>
             <div className="space-y-4 py-6">

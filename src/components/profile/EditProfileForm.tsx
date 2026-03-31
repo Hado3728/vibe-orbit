@@ -9,7 +9,6 @@ import { updateProfile } from '@/app/(app)/profile/actions'
 import { cn } from '@/lib/utils'
 
 interface ProfileData {
-    username: string
     bio: string
     interests: string[]
 }
@@ -51,25 +50,14 @@ export default function EditProfileForm({ initialData }: { initialData: ProfileD
     }
 
     return (
-        <Card className="bg-white/10 dark:bg-black/20 backdrop-blur-xl border-white/20 dark:border-white/10 shadow-2xl overflow-hidden">
-            <CardHeader className="border-b border-white/10 bg-white/5">
+        <Card className="bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+            <CardHeader className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
                 <CardTitle className="text-xl font-bold flex items-center gap-2">
                     Edit Your Orbit Identity
                     <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
                 </CardTitle>
             </CardHeader>
             <CardContent className="p-6 space-y-6">
-                {/* Username */}
-                <div className="space-y-2">
-                    <label className="text-xs font-bold text-foreground/50 uppercase tracking-widest pl-1">Username</label>
-                    <Input
-                        value={formData.username}
-                        onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
-                        placeholder="Enter your cosmic handle..."
-                        className="bg-white/5 border-white/10 focus:border-primary/50 text-lg font-medium"
-                    />
-                </div>
-
                 {/* Bio */}
                 <div className="space-y-2">
                     <label className="text-xs font-bold text-foreground/50 uppercase tracking-widest pl-1">Bio</label>

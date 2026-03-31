@@ -1,7 +1,7 @@
 import React from "react"
 
 export function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-    return <div className={`rounded-xl border bg-white/20 backdrop-blur-md shadow-sm ${className}`} {...props} />
+    return <div className={`rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-sm ${className}`} {...props} />
 }
 export function CardHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
     return <div className={`flex flex-col space-y-1.5 p-6 ${className}`} {...props} />

@@ -25,16 +25,17 @@ export default async function AdminReportsPage() {
 
     return (
         <div className="min-h-screen bg-slate-950 p-8 text-slate-100">
-            <h1 className="text-4xl font-extrabold mb-8 tracking-tight">Report Feed</h1>
+            <h1 className="text-4xl font-extrabold mb-2 tracking-tight">Report Feed</h1>
+            <p className="text-slate-400 mb-8 max-w-2xl">Manage community safety. Review reports, assess the context, and take necessary actions to maintain the orbit's frequency.</p>
             
             <div className="grid gap-6 max-w-4xl">
                 {!reports || reports.length === 0 ? (
-                    <div className="p-12 text-center bg-slate-900/40 rounded-3xl border border-slate-800/50">
+                    <div className="p-12 text-center bg-slate-950 rounded-3xl border border-slate-800">
                         <p className="text-slate-500 text-lg">Inbox zero! No pending reports active.</p>
                     </div>
                 ) : (
                     reports.map((report: any) => (
-                        <div key={report.id} className="bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 p-6 rounded-3xl shadow-2xl flex flex-col gap-5 transition-all hover:bg-slate-900/80">
+                        <div key={report.id} className="bg-slate-950 border border-slate-800 p-6 rounded-3xl shadow-sm flex flex-col gap-5 transition-all hover:border-slate-700">
                             <div className="flex justify-between items-start">
                                 <div>
                                     <h3 className="text-2xl font-bold text-rose-400">{report.reason}</h3>

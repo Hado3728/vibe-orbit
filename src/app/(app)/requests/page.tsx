@@ -163,7 +163,7 @@ export default function RequestsPage() {
                     >
                         {requests.map((req) => (
                             <motion.div key={req.id} variants={item}>
-                                <Card className="h-full bg-white/40 backdrop-blur-xl border-white/50 shadow-xl rounded-3xl overflow-hidden flex flex-col">
+                                <Card className="h-full bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 shadow-sm rounded-3xl overflow-hidden flex flex-col">
                                     <CardHeader className="pb-3">
                                         <div className="flex justify-between items-start">
                                             <div>

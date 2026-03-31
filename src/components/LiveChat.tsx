@@ -155,10 +155,10 @@ export default function LiveChat({ roomId, initialMessages, currentUserId }: Liv
                                         {username}
                                     </span>
                                     <div 
-                                        className={`px-4 py-3 rounded-2xl text-sm leading-relaxed backdrop-blur-md shadow-sm ${
+                                        className={`px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-sm ${
                                             isMe 
-                                            ? 'bg-purple-700 text-purple-50 rounded-br-sm shadow-purple-900/20' 
-                                            : 'bg-white/5 border border-purple-900/30 text-slate-200 rounded-bl-sm'
+                                            ? 'bg-purple-700 text-purple-50 rounded-br-sm' 
+                                            : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-bl-sm'
                                         }`}
                                     >
                                         {msgText}
@@ -172,7 +172,7 @@ export default function LiveChat({ roomId, initialMessages, currentUserId }: Liv
             </div>
 
             {/* Input Bar */}
-            <div className="shrink-0 p-4 sm:p-6 bg-black/60 backdrop-blur-2xl border-t border-purple-900/50">
+            <div className="shrink-0 p-4 sm:p-6 bg-slate-950 border-t border-slate-800">
                 <form 
                     onSubmit={handleSendMessage} 
                     className="max-w-5xl mx-auto relative flex items-center gap-3"

@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import EditProfileForm from '@/components/profile/EditProfileForm'
-import { User } from 'lucide-react'
+import { User, Calendar, Mail } from 'lucide-react'
 
 export const dynamic = 'force-dynamic';
 
@@ -26,10 +26,9 @@ export default async function ProfilePage() {
     return (
         <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* Page Header */}
-            <header className="flex items-center gap-6">
-                <div className="relative group">
-                    <div className="absolute -inset-1 bg-gradient-to-r from-primary to-purple-600 rounded-full blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
-                    <div className="relative h-24 w-24 rounded-full border-2 border-white/20 overflow-hidden bg-white/5 flex items-center justify-center">
+            <header className="flex flex-col md:flex-row items-center md:items-start gap-6 bg-white dark:bg-slate-950 p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                <div className="relative group shrink-0">
+                    <div className="relative h-28 w-28 rounded-full border-4 border-slate-100 dark:border-slate-800 overflow-hidden bg-slate-100 dark:bg-slate-900 flex items-center justify-center">
                         {user.user_metadata?.avatar_url ? (
                             <img
                                 src={user.user_metadata.avatar_url}
@@ -37,24 +36,38 @@ export default async function ProfilePage() {
                                 className="h-full w-full object-cover"
                             />
                         ) : (
-                            <User className="h-10 w-10 text-primary/40" />
+                            <User className="h-12 w-12 text-slate-400" />
                         )}
                     </div>
                 </div>
-                <div>
-                    <h1 className="text-4xl font-black tracking-tight text-foreground">
-                        User Profile
-                    </h1>
-                    <p className="text-foreground/50 font-medium">
-                        Welcome back, <span className="text-primary">@{profile.username}</span>
-                    </p>
+                <div className="flex-1 text-center md:text-left space-y-4">
+                    <div>
+                        <h1 className="text-3xl font-black tracking-tight text-foreground">
+                            {profile.username}
+                        </h1>
+                        <p className="text-foreground/50 font-medium text-lg">
+                            @{profile.username}
+                        </p>
+                    </div>
+                    
+                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-sm text-slate-500 font-medium">
+                        {user.email && (
+                            <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-100 dark:bg-slate-900 rounded-full border border-slate-200 dark:border-slate-800">
+                                <Mail className="h-4 w-4" />
+                                {user.email}
+                            </div>
+                        )}
+                        <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-100 dark:bg-slate-900 rounded-full border border-slate-200 dark:border-slate-800">
+                            <Calendar className="h-4 w-4" />
+                            Joined {new Date(profile.created_at || user.created_at).toLocaleDateString()}
+                        </div>
+                    </div>
                 </div>
             </header>
 
             <div className="grid grid-cols-1 gap-8">
                 <EditProfileForm
                     initialData={{
-                        username: profile.username || '',
                         bio: profile.bio || '',
                         interests: profile.interests || [],
                     }}

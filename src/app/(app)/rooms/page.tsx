@@ -109,7 +109,7 @@ export default function RoomsHubPage() {
                 {loading ? (
                     <LoadingVibe />
                 ) : sortedRooms.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-96 bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 shadow-xl">
+                    <div className="flex flex-col items-center justify-center h-96 bg-white dark:bg-slate-950 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
                         <Users className="h-12 w-12 text-gray-400 mb-4" />
                         <h3 className="text-xl font-bold text-gray-700">No rooms active in your sector...</h3>
                         <p className="text-gray-500">Check back soon as new orbit sectors open up.</p>
@@ -126,7 +126,7 @@ export default function RoomsHubPage() {
 
                             return (
                                 <motion.div key={room.id} variants={item}>
-                                    <Card className="h-full bg-white/40 backdrop-blur-xl border-white/50 shadow-sm hover:shadow-md transition-all duration-300 group overflow-hidden flex flex-col relative border-t-4 border-t-indigo-500">
+                                    <Card className="h-full bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-lg transition-all duration-300 group overflow-hidden flex flex-col relative border-t-4 border-t-indigo-500">
                                         <CardHeader className="pb-3">
                                             <div className="flex justify-between items-start mb-2">
                                                 <div className="bg-indigo-100 text-indigo-700 px-2 py-1 rounded-md text-[10px] uppercase font-black flex items-center gap-1">

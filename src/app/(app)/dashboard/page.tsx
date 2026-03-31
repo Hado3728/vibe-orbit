@@ -192,7 +192,7 @@ export default function DashboardPage() {
                 {loading ? (
                     <LoadingVibe />
                 ) : users.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center p-12 text-center bg-black/40 backdrop-blur-md rounded-[2rem] border border-purple-900/30 shadow-xl mt-8">
+                    <div className="flex flex-col items-center justify-center p-12 text-center bg-slate-950 rounded-[2rem] border border-slate-800 shadow-sm mt-8">
                         <div className="h-20 w-20 bg-purple-900/20 rounded-full flex items-center justify-center animate-pulse mb-6">
                             <Orbit className="h-10 w-10 text-purple-500" />
                         </div>

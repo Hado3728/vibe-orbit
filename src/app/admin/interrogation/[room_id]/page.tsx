@@ -16,7 +16,7 @@ export default async function InterrogationRoomPage({ params }: { params: Promis
                     Session: {room_id}
                 </p>
 
-                <div className="bg-slate-900/80 backdrop-blur-2xl border border-slate-800 rounded-3xl p-10 mt-12 shadow-2xl">
+                <div className="bg-slate-950 border border-slate-800 rounded-3xl p-10 mt-12 shadow-sm">
                     <h2 className="text-2xl font-bold mb-3 text-slate-200">The suspect is isolated.</h2>
                     <p className="text-slate-400 leading-relaxed mb-8">
                         The secure chat interface and evidence locker are currently under deployment. This room is locked and monitored.

@@ -13,7 +13,7 @@ interface MatchCardProps {
 
 export default function MatchCard({ name, matchScore, sharedInterests, bio, avatarUrl, onAction, actionText, isActionDisabled }: MatchCardProps) {
     return (
-        <div className="group relative w-full overflow-hidden rounded-3xl bg-black/40 backdrop-blur-md border border-purple-900/50 p-6 sm:p-7 transition-all duration-500 hover:shadow-[0_0_15px_rgba(147,51,234,0.2)] hover:border-purple-800/60 flex flex-col h-full gap-6">
+        <div className="group relative w-full overflow-hidden rounded-3xl bg-slate-950 border border-slate-800 p-6 sm:p-7 transition-all duration-500 hover:shadow-lg hover:border-slate-700 flex flex-col h-full gap-6">
             
             {/* Top Section - Match % */}
             <div className="flex items-center justify-between z-10">

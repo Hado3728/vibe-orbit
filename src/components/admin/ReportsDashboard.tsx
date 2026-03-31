@@ -83,7 +83,7 @@ export default function ReportsDashboard({ initialReports, currentAdminId }: Rep
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             {/* Reports List */}
             <div className={cn("lg:col-span-12", selectedReport && "lg:col-span-5")}>
-                <Card className="bg-slate-900/50 backdrop-blur-xl border-white/10">
+                <Card className="bg-slate-950 border-slate-800 shadow-sm">
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
                         <CardTitle className="text-xl font-bold flex items-center gap-2">
                             <ShieldAlert className="h-5 w-5 text-red-500" />

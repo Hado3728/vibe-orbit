@@ -132,7 +132,7 @@ export default function ChatPage({ params }: ChatPageProps) {
     return (
         <div className="flex flex-col h-[calc(100vh-4rem)] md:h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
             {/* Header */}
-            <header className="flex-none p-4 backdrop-blur-md bg-white/60 border-b border-indigo-100 flex items-center gap-4 sticky top-0 z-10 shadow-sm">
+            <header className="flex-none p-4 bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 flex items-center gap-4 sticky top-0 z-10 shadow-sm">
                 <Button variant="ghost" size="icon" onClick={() => router.back()} className="md:hidden">
                     <ArrowLeft className="h-5 w-5 text-gray-600" />
                 </Button>
@@ -199,7 +199,7 @@ export default function ChatPage({ params }: ChatPageProps) {
             </div>
 
             {/* Input Area */}
-            <div className="flex-none p-4 bg-white/70 backdrop-blur-md border-t border-indigo-100">
+            <div className="flex-none p-4 bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800">
                 <form onSubmit={handleSendMessage} className="max-w-4xl mx-auto relative flex items-center gap-2">
                     <Input
                         value={newMessage}

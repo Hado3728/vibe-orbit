@@ -37,7 +37,7 @@ export default async function LoungesDirectory() {
                         {lounges.map((lounge) => (
                             <div 
                                 key={lounge.id} 
-                                className="group relative flex flex-col justify-between p-6 sm:p-8 rounded-[2rem] bg-black/40 backdrop-blur-xl border border-purple-900/50 hover:border-purple-700/60 hover:shadow-[0_0_30px_rgba(147,51,234,0.15)] transition-all duration-500 min-h-[240px]"
+                                className="group relative flex flex-col justify-between p-6 sm:p-8 rounded-[2rem] bg-slate-950 border border-slate-800 hover:border-slate-700 hover:shadow-lg transition-all duration-500 min-h-[240px]"
                             >
                                 <div className="space-y-4">
                                     <h3 className="text-2xl font-bold text-slate-100 tracking-tight group-hover:text-purple-300 transition-colors">
@@ -67,7 +67,7 @@ export default async function LoungesDirectory() {
                         ))}
                     </div>
                 ) : (
-                    <div className="flex flex-col items-center justify-center p-12 py-24 text-center border border-purple-900/30 bg-black/40 backdrop-blur-xl rounded-[2rem]">
+                    <div className="flex flex-col items-center justify-center p-12 py-24 text-center border border-slate-800 bg-slate-950 rounded-[2rem]">
                         <Sparkles className="w-12 h-12 text-purple-900/60 mb-6" />
                         <h3 className="text-xl font-bold text-slate-300 mb-2">No active lounges detected.</h3>
                         <p className="text-slate-500 font-light">The cosmos is quiet. Please check back later or spawn a new frequency.</p>

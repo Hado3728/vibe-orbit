@@ -26,7 +26,7 @@ const Navbar = () => {
     }
 
     return (
-        <nav className="fixed top-0 left-0 right-0 h-16 border-b border-white/20 dark:border-white/10 bg-white/30 dark:bg-black/30 backdrop-blur-xl z-[60] flex items-center px-6 justify-between transition-all">
+        <nav className="fixed top-0 left-0 right-0 h-16 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 z-[60] flex items-center px-6 justify-between transition-all">
             <div className="flex items-center gap-2 cursor-pointer group" onClick={() => router.push('/')}>
                 <div className="bg-primary/20 p-1.5 rounded-xl group-hover:scale-110 transition-transform">
                     <Orbit className="h-6 w-6 text-primary" />

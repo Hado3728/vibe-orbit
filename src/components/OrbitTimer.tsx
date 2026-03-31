@@ -46,7 +46,7 @@ export default function OrbitTimer({ lastOrbitDrop }: { lastOrbitDrop: string })
         <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            className="flex flex-col items-center justify-center p-8 bg-slate-900/60 backdrop-blur-2xl border border-indigo-500/30 shadow-[0_0_50px_rgba(99,102,241,0.1)] rounded-3xl max-w-md mx-auto w-full"
+            className="flex flex-col items-center justify-center p-8 bg-slate-950 border border-slate-800 shadow-sm rounded-3xl max-w-md mx-auto w-full"
         >
             <h3 className="text-slate-400 font-semibold mb-6 tracking-wide uppercase text-sm">Next Orbit Drop In</h3>
             <div className="flex gap-4 sm:gap-6 text-center">

@@ -144,7 +144,7 @@ export default function ChatInboxPage() {
                     >
                         {conversations.map((chat) => (
                             <motion.div key={chat.connectionId} variants={item}>
-                                <Card className="hover:shadow-lg transition-shadow duration-300 bg-white/60 backdrop-blur-md border-white/50">
+                                <Card className="hover:shadow-lg transition-shadow duration-300 bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800">
                                     <CardContent className="p-0">
                                         <div className="flex items-center justify-between p-6">
                                             <div className="flex items-center gap-4">
